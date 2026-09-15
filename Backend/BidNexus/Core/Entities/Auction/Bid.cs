@@ -9,7 +9,7 @@ namespace Core.Entities.Auction
     public class Bid
     {
         public long Id { get; set; }
-        public bool IsCuurent { get; set; }
+        public bool IsCurrent { get; set; }
         public long MainBidId { get; set; }
         public int AuctionId { get; set; }
         public int VendorId { get; set; }

@@ -6,9 +6,9 @@ namespace Core.Entities.Utilities
     {
         public short RatingForId { get; set; }
         public int AuctionId { get; set; }
-        public int AgainstTennant { get; set; }
-        public int SubmittedByTennant { get; set; }
+        public int AgainstTenant { get; set; }
+        public int SubmittedByTenant { get; set; }
         public string? Remark { get; set; }
-        public ICollection<RatingParameter> RatingParameters { get; set; } = null!;
+        public ICollection<RatingValues> RatingParameters { get; set; } = null!;
     }
 }

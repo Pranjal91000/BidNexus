@@ -4,9 +4,10 @@ using System.Text;
 
 namespace Core.Entities.Utilities
 {
-    public class RatingParameter
+    public class RatingValues
     {
         public int Id { get; set; }
-        public string Parameter { get; set; } = string.Empty;
+        public int ParameterId { get; set; }
+        public short RatingScore { get; set; }
     }
 }

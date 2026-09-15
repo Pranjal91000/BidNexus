@@ -3,9 +3,9 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace Core.Entities.Tennant
+namespace Core.Entities.Tenant
 {
-    public class Tennant
+    public class Tenant
     {
         public int Id { get; set; }
         public int Name { get; set; }

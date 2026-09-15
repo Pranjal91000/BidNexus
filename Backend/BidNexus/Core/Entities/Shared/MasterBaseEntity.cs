@@ -9,7 +9,7 @@ namespace Core.Entities.Shared
         public string Name { get; set; } = string.Empty;
         public string Code { get; set; } = string.Empty; 
         public DateTimeOffset CreatedDateTime { get; set; }
-        public DateTimeOffset LastModifieDateTime { get; set; }
+        public DateTimeOffset LastModifiedDateTimeDateTime { get; set; }
         public short StatusId { get; set; }
         public string StatusRemarks { get; set; } = string.Empty;
 
