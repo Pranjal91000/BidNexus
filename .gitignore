@@ -1,0 +1,8 @@
+﻿################################################################################
+# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
+################################################################################
+
+/Backend/BidNexus/.vs
+/Backend/BidNexus/BidNexus/obj
+/Backend/BidNexus/Core/obj
+/Backend/BidNexus/Infrastructure/obj
