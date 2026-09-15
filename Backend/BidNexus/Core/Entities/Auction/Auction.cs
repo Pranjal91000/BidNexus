@@ -11,7 +11,7 @@ namespace Core.Entities.Auction
         public bool OpenToAll { get; set; }
         public bool IsBidPriceHidden { get; set; }
         public ICollection<VendorIntent> VendorIntent { get; set; } = null!;
-        ICollection<AuctionRequirement> AuctionRequirements { get; set; } = null!;
-        ICollection<Bid> Bids { get; set; } = null!;
+        public ICollection<AuctionRequirement> AuctionRequirements { get; set; } = null!;
+        public ICollection<Bid> Bids { get; set; } = null!;
     }
 }

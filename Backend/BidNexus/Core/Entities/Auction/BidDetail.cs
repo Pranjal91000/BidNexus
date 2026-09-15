@@ -6,7 +6,8 @@ namespace Core.Entities.Auction
 {
     public class BidDetail
     {
-        public int BidId { get; set; }
+        public long Id { get; set; }
+        public long BidId { get; set; }
         public int AuctionRequirementId { get; set; }
         public decimal Price { get; set; }
     }
