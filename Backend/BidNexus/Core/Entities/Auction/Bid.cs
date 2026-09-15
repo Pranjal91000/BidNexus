@@ -17,7 +17,8 @@ namespace Core.Entities.Auction
         public DateTimeOffset CreatedAt { get; set; }
         public short BidRevisionNo { get; set; }
         public Bid MainBid { get; set; } = null!;
-        public ICollection<BidDetails> BidDetails { get; set; } = null!;
+        public Auction Auction { get; set; } = null!;
+        public ICollection<BidDetail> BidDetails { get; set; } = null!;
         
     }
 }

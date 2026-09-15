@@ -2,7 +2,7 @@
 
 namespace Core.Entities.Auction
 {
-    public class AuctionRequirements: BaseEntity
+    public class AuctionRequirement: BaseEntity
     {
         public int ItemId { get; set; }
         public string? TechnicalSpecification { get; set; }

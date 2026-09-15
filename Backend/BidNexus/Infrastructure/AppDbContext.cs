@@ -10,7 +10,8 @@ namespace Infrastructure
         {
         }
 
-        public DbSet<AuctionRequirements> Auctions => Set<AuctionRequirements>();
-
+        public DbSet<Auction> Auctions => Set<Auction>();
+        public DbSet<AuctionRequirement> AuctionRequirements => Set<AuctionRequirement>();
+        public DbSet<>
     }
 }       
