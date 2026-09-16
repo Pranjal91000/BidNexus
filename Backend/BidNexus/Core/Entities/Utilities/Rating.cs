@@ -9,6 +9,6 @@ namespace Core.Entities.Utilities
         public int AgainstTenant { get; set; }
         public int SubmittedByTenant { get; set; }
         public string? Remark { get; set; }
-        public ICollection<RatingValues> RatingParameters { get; set; } = null!;
+        public ICollection<RatingValue> RatingValues { get; set; } = null!;
     }
 }

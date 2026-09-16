@@ -9,6 +9,6 @@ namespace Core.Entities.Shared
         public string DocNoYearly { get; set; } = string.Empty;
         public DateOnly DocDate { get; set; }
         public DateTimeOffset CreatedDateTime { get; set; }
-        public DateTimeOffset LastModifiedDateTimedDateTime { get; set; }
+        public DateTimeOffset LastModifiedDateTime { get; set; }
     }
 }

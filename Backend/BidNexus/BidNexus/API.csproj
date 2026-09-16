@@ -11,7 +11,15 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="Controllers\" />
+    <Folder Include="Abstraction\" />
+    <Folder Include="Extensions\" />
+    <Folder Include="Models\" />
     <Folder Include="Services\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Infrastructure\Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

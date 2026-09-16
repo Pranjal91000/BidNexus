@@ -12,8 +12,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="EntityConfigurations\" />
     <Folder Include="Data\" />
+    <Folder Include="Extensions\" />
+    <Folder Include="Repository\" />
   </ItemGroup>
 
   <ItemGroup>

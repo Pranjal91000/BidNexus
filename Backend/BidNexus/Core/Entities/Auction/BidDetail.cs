@@ -10,5 +10,6 @@ namespace Core.Entities.Auction
         public long BidId { get; set; }
         public int AuctionRequirementId { get; set; }
         public decimal Price { get; set; }
+        public AuctionRequirement AuctionRequirement { get; set; } = null!;
     }
 }

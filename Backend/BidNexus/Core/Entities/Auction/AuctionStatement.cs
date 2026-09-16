@@ -1,8 +1,9 @@
-﻿using Core.Entities.User;
+﻿using Core.Entities.Shared;
+using Core.Entities.User;
 
 namespace Core.Entities.Auction
 {
-    public class AuctionStatement
+    public class AuctionStatement: BaseEntity
     {
         public int AuctionId { get; set; }
         public int BidId { get; set; }

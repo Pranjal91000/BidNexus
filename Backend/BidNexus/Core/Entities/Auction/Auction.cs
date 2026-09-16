@@ -5,13 +5,14 @@ namespace Core.Entities.Auction
     public class Auction: TransactionBaseEntity
     {
         public bool IsForwardAuction { get; set; }
-        public DateTimeOffset AcuctionStartTime { get; set; }
+        public DateTimeOffset AuctionStartTime { get; set; }
         public DateTimeOffset AuctionEndTime { get; set; }
-        public short? DocAttachmentId { get; set; }
+        public Guid? DocAttachmentId { get; set; }
         public bool OpenToAll { get; set; }
         public bool IsBidPriceHidden { get; set; }
         public ICollection<VendorIntent> VendorIntent { get; set; } = null!;
         public ICollection<AuctionRequirement> AuctionRequirements { get; set; } = null!;
         public ICollection<Bid> Bids { get; set; } = null!;
+        public AuctionStatement AuctionStatement { get; set; } = null!;
     }
 }

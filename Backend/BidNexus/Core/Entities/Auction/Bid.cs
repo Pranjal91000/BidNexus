@@ -1,4 +1,5 @@
 ﻿using Core.Entities.Shared;
+using Core.Entities.User;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -18,6 +19,7 @@ namespace Core.Entities.Auction
         public short BidRevisionNo { get; set; }
         public Bid MainBid { get; set; } = null!;
         public Auction Auction { get; set; } = null!;
+        public Vendor Vendor { get; set; } = null!;
         public ICollection<BidDetail> BidDetails { get; set; } = null!;
         
     }

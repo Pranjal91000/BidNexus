@@ -4,7 +4,7 @@ using System.Text;
 
 namespace Core.Entities.GlobalData
 {
-    public class Categories
+    public class Category
     {
         public short Id { get; set; }
         public string Name { get; set; } = string.Empty;

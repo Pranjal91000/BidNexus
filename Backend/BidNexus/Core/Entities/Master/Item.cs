@@ -10,6 +10,6 @@ namespace Core.Entities.Master
         public string ItemDescription { get; set; } = string.Empty;
         public int? DocAttachmentId { get; set; }
         public ICollection<ItemUnitMapping> ApplicableUnits { get; set; } = null!;
-        public Categories Category { get; set; } = null!;
+        public Category Category { get; set; } = null!;
     }
 }

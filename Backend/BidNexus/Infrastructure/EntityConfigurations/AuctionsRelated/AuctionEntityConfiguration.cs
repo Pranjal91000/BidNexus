@@ -1,0 +1,22 @@
+﻿using Core.Entities.Auction;
+using Infrastructure.EntityConfigurations.Shared;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+
+namespace Infrastructure.EntityConfigurations.AuctionsRelated
+{
+    public class AuctionEntityConfiguration(): IEntityTypeConfiguration<Auction>
+    {
+        public void Configure(EntityTypeBuilder<Auction> builder)
+        {
+            builder.ToTable("Auction", "AuctionRel");
+            TransactionBasedEnitityConfiguration.Configure(builder);
+            builder.Property(x => x.IsBidPriceHidden).IsRequired();
+            builder.Property(x => x.IsForwardAuction).IsRequired();
+            builder.Property(x => x.OpenToAll).IsRequired();
+            builder.Property(x => x.DocAttachmentId).IsRequired(false);
+            builder.Property(x => x.AuctionEndTime).IsRequired();
+            builder.Property(x => x.AuctionStartTime).IsRequired();
+        }
+    }
+}
