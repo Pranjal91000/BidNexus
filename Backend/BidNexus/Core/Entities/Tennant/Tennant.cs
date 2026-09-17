@@ -15,6 +15,7 @@ namespace Core.Entities.Tenant
         public string Password { get; set; } = string.Empty;
         public bool IsVendor { get; set; }
         public int ReferenceId { get; set; }
+        public bool IsBlocked { get; set; }
 
     }
 }

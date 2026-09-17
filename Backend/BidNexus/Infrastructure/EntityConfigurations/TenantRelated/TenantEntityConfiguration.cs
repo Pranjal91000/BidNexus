@@ -23,6 +23,7 @@ namespace Infrastructure.EntityConfigurations.TenantRelated
 
             builder.HasIndex(x => x.UserName).IsUnique();
             builder.HasIndex(x => x.EmailAddress).IsUnique();
+            builder.Property(x => x.IsBlocked).IsRequired();
         }
     }
 }

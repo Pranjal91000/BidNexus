@@ -6,7 +6,7 @@ namespace Core.Entities.Auction
     public class AuctionStatement: BaseEntity
     {
         public int AuctionId { get; set; }
-        public int BidId { get; set; }
+        public long BidId { get; set; }
         public int VendorId { get; set; }
         public short Rank { get; set; }
         public bool IsWinner { get; set; }
