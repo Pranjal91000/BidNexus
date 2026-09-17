@@ -19,22 +19,26 @@ namespace Infrastructure.EntityConfigurations.AuctionsRelated
 
             builder.Property(x => x.TechnicalSpecification).IsRequired(false);
 
-            builder.Property(x => x.Quantity).IsRequired();
-
-            builder.Property(x => x.Quantity).HasPrecision(2);
+            builder.Property(x => x.Quantity).HasPrecision(2).IsRequired();
 
             builder.Property(x => x.UnitId).IsRequired();
 
-            builder.HasOne(x => x.Auction)
+            builder.HasOne(x => x.Unit)
                 .WithMany()
-                .HasForeignKey(x => x.AuctionId)
-                .HasConstraintName("FK_AuctionRequirement_AuctioId")
-                .OnDelete(DeleteBehavior.Cascade);
+                .HasForeignKey(x => x.UnitId)
+                .HasConstraintName("FK_AuctionRequirement_UnitId")
+                .OnDelete(DeleteBehavior.Restrict);
 
             builder.HasOne(x => x.Item)
                 .WithMany()
                 .HasForeignKey(x => x.ItemId)
                 .HasConstraintName("FK_AuctionRequirement_ItemId")
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.HasOne(x => x.Auction)
+                .WithMany(x => x.AuctionRequirements)
+                .HasForeignKey(x => x.AuctionId)
+                .HasConstraintName("FK_AuctionRequirement_AuctioId")
                 .OnDelete(DeleteBehavior.Cascade);
 
         }

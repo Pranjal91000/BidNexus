@@ -13,5 +13,6 @@ namespace Core.Entities.Auction
         public long? DocumentAttachmentId { get; set; }
         public Item Item { get; set; } = null!;
         public Auction Auction { get; set; } = null!;
+        public Unit Unit { get; set; } = null!;
     }
 }
