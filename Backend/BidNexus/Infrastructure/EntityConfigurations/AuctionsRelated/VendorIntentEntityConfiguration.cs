@@ -21,8 +21,8 @@ namespace Infrastructure.EntityConfigurations.AuctionsRelated
                 .OnDelete(DeleteBehavior.Restrict);
 
             builder.HasOne(x => x.Vendor)
-                .WithOne()
-                .HasForeignKey<VendorIntent>(x => x.VendorId)
+                .WithMany()
+                .HasForeignKey(x => x.VendorId)
                 .HasConstraintName("Fk_VendorIntent_VendorId")
                 .OnDelete(DeleteBehavior.Restrict);
         }
