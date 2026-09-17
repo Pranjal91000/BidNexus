@@ -8,5 +8,6 @@ namespace Core.Entities.GlobalData
     {
         public short Id { get; set; }
         public string Name { get; set; } = string.Empty;
+        public bool Inactive { get; set; }
     }
 }

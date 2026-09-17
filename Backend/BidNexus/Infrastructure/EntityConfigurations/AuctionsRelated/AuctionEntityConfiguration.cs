@@ -17,6 +17,12 @@ namespace Infrastructure.EntityConfigurations.AuctionsRelated
             builder.Property(x => x.DocAttachmentId).IsRequired(false);
             builder.Property(x => x.AuctionEndTime).IsRequired();
             builder.Property(x => x.AuctionStartTime).IsRequired();
+            builder.Property(x => x.OrganizationId).IsRequired();
+            builder.HasOne(x => x.Organization)
+                .WithMany()
+                .HasForeignKey(x => x.OrganizationId)
+                .HasConstraintName("FK_Auction_OrganizationId")
+                .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }

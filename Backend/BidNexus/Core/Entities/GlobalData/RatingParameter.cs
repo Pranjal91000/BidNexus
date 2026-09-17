@@ -9,5 +9,6 @@ namespace Core.Entities.GlobalData
         public short Id { get; set; }
         public string ParameterName { get; set; } = string.Empty;
         public bool RatingFor { get; set; }
+        public bool Inactive { get; set; }
     }
 }
