@@ -1,0 +1,30 @@
+﻿using Core.Entities.Auction;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+
+namespace Infrastructure.EntityConfigurations.AuctionsRelated
+{
+    public class VendorIntentEntityConfiguration: IEntityTypeConfiguration<VendorIntent>
+    {
+        public void Configure(EntityTypeBuilder<VendorIntent> builder)
+        {
+            builder.ToTable("VendorIntent", "AuctionIntent");
+            builder.Property(x => x.AuctionId).IsRequired();
+            builder.Property(x => x.VendorId).IsRequired();
+            builder.Property(x => x.IsInterested).IsRequired();
+            builder.Property(x => x.IsQualified).IsRequired();
+
+            builder.HasOne(x => x.Auction)
+                .WithMany(x => x.VendorIntent)
+                .HasForeignKey(x => x.AuctionId)
+                .HasConstraintName("Fk_VendorIntent_AuctionId")
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.HasOne(x => x.Vendor)
+                .WithOne()
+                .HasForeignKey<VendorIntent>(x => x.VendorId)
+                .HasConstraintName("Fk_VendorIntent_VendorId")
+                .OnDelete(DeleteBehavior.Restrict);
+        }
+    }
+}
