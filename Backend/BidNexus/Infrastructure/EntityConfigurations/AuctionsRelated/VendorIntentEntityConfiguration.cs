@@ -8,7 +8,7 @@ namespace Infrastructure.EntityConfigurations.AuctionsRelated
     {
         public void Configure(EntityTypeBuilder<VendorIntent> builder)
         {
-            builder.ToTable("VendorIntent", "AuctionIntent");
+            builder.ToTable("VendorIntent", "AuctionRel");
             builder.Property(x => x.AuctionId).IsRequired();
             builder.Property(x => x.VendorId).IsRequired();
             builder.Property(x => x.IsInterested).IsRequired();
