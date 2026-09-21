@@ -1,4 +1,5 @@
-﻿using Core.Entities.GlobalData;
+using Core.Entities.GlobalData;
+using Core.Entities.Master;
 using Core.Entities.Shared;
 
 namespace Core.Entities.Auction
@@ -16,6 +17,7 @@ namespace Core.Entities.Auction
         public short TaxNatureId { get; set; }
         public short ChargeTypeId { get; set; }
 
+        public TaxMaster? Tax { get; set; }
         public TaxNature TaxNature { get; set; } = null!;
         public ChargeType ChargeType { get; set; } = null!;
 

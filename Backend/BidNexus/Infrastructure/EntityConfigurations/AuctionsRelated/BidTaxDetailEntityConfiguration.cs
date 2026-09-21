@@ -27,6 +27,12 @@ namespace Infrastructure.EntityConfigurations.AuctionsRelated
                 .HasConstraintName("FK_BidTaxDetail_BidDetailId")
                 .OnDelete(DeleteBehavior.Cascade);
 
+            builder.HasOne(x => x.Tax)
+                .WithMany()
+                .HasForeignKey(x => x.TaxId)
+                .HasConstraintName("FK_BidTaxDetail_TaxId")
+                .OnDelete(DeleteBehavior.Restrict);
+
             builder.HasOne(x => x.TaxNature)
                 .WithMany()
                 .HasForeignKey(x => x.TaxNatureId)
