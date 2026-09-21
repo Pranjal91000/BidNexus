@@ -1,4 +1,4 @@
-﻿using Core.Entities.Auction;
+using Core.Entities.Auction;
 using Infrastructure.EntityConfigurations.Shared;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -18,10 +18,18 @@ namespace Infrastructure.EntityConfigurations.AuctionsRelated
             builder.Property(x => x.AuctionEndTime).IsRequired();
             builder.Property(x => x.AuctionStartTime).IsRequired();
             builder.Property(x => x.OrganizationId).IsRequired();
+            builder.Property(x => x.StatusId).IsRequired();
+
             builder.HasOne(x => x.Organization)
                 .WithMany()
                 .HasForeignKey(x => x.OrganizationId)
                 .HasConstraintName("FK_Auction_OrganizationId")
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.HasOne(x => x.Status)
+                .WithMany()
+                .HasForeignKey(x => x.StatusId)
+                .HasConstraintName("FK_Auction_StatusId")
                 .OnDelete(DeleteBehavior.Restrict);
         }
     }

@@ -1,5 +1,5 @@
 ﻿using Core.Entities.Shared;
-using Core.Entities.User;
+using Core.Entities.Tenant;
 
 namespace Core.Entities.Auction
 {

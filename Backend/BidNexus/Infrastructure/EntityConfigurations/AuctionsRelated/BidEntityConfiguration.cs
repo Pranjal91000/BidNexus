@@ -1,5 +1,5 @@
 using Core.Entities.Auction;
-using Core.Entities.User;
+using Core.Entities.Tenant;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -18,7 +18,10 @@ namespace Infrastructure.EntityConfigurations.AuctionsRelated
             builder.Property(x => x.MainBidId).IsRequired();
             builder.Property(x => x.AuctionId).IsRequired();
             builder.Property(x => x.VendorId).IsRequired();
-            builder.Property(x => x.FinalPrice).IsRequired();
+            builder.Property(x => x.BasicAmount).HasPrecision(18, 2).IsRequired();
+            builder.Property(x => x.TaxAmount).HasPrecision(18, 2).IsRequired();
+            builder.Property(x => x.DiscountAmount).HasPrecision(18, 2).IsRequired();
+            builder.Property(x => x.NetAmount).HasPrecision(18, 2).IsRequired();
             builder.Property(x => x.CreatedAt).ValueGeneratedOnAdd();
             builder.Property(x => x.BidRevisionNo).IsRequired();
 

@@ -1,4 +1,4 @@
-﻿using Core.Entities.Auction;
+using Core.Entities.Auction;
 using Infrastructure.EntityConfigurations.Shared;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -19,9 +19,11 @@ namespace Infrastructure.EntityConfigurations.AuctionsRelated
 
             builder.Property(x => x.TechnicalSpecification).IsRequired(false);
 
-            builder.Property(x => x.Quantity).HasPrecision(2).IsRequired();
+            builder.Property(x => x.Quantity).HasPrecision(18, 3).IsRequired();
 
             builder.Property(x => x.UnitId).IsRequired();
+
+            builder.Property(x => x.DocumentAttachmentId).IsRequired(false);
 
             builder.HasOne(x => x.Unit)
                 .WithMany()

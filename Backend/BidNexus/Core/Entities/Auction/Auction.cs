@@ -1,5 +1,6 @@
 ﻿using Core.Entities.GlobalData;
 using Core.Entities.Shared;
+using Core.Entities.Tenant;
 
 namespace Core.Entities.Auction
 {
