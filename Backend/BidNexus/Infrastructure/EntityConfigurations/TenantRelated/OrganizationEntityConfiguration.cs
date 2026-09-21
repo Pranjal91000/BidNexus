@@ -1,4 +1,4 @@
-using Core.Entities.User;
+using Core.Entities.Tenant;
 using Infrastructure.EntityConfigurations.Shared;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;

@@ -1,9 +1,4 @@
-﻿using Core.Entities.Shared;
-using Core.Entities.User;
-using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Text.Json.Serialization;
+﻿using Core.Entities.Tenant;
 
 namespace Core.Entities.Auction
 {
@@ -14,7 +9,10 @@ namespace Core.Entities.Auction
         public long MainBidId { get; set; }
         public int AuctionId { get; set; }
         public int VendorId { get; set; }
-        public decimal FinalPrice { get; set; }
+        public decimal BasicAmount { get; set; }
+        public decimal TaxAmount { get; set; }
+        public decimal DiscountAmount { get; set; }
+        public decimal NetAmount { get; set; }
         public DateTimeOffset CreatedAt { get; set; }
         public short BidRevisionNo { get; set; }
         public Bid MainBid { get; set; } = null!;

@@ -1,6 +1,6 @@
 ﻿using Core.Entities.Shared;
 
-namespace Core.Entities.User
+namespace Core.Entities.Tenant
 {
     public class Vendor: BaseEntity
     {

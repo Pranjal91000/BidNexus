@@ -15,13 +15,14 @@ namespace Infrastructure.EntityConfigurations.AuctionsRelated
 
             builder.Property(x => x.BidId).IsRequired();
             builder.Property(x => x.AuctionRequirementId).IsRequired();
-            builder.Property(x => x.Price).IsRequired();
+            builder.Property(x => x.Rate).HasPrecision(18, 4).IsRequired();
+            builder.Property(x => x.BaseAmount).HasPrecision(18, 2).IsRequired();
+            builder.Property(x => x.NetAmount).HasPrecision(18, 2).IsRequired();
 
-            builder.HasOne<AuctionRequirement>()
+            builder.HasOne(x => x.AuctionRequirement)
                 .WithMany()
                 .HasForeignKey(x => x.AuctionRequirementId)
                 .HasConstraintName("FK_BidDetail_AuctionRequirementId")
-                .OnDelete(DeleteBehavior.Restrict);
-        }
+                .OnDelete(DeleteBehavior.Restrict);        }
     }
 }
