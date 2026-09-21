@@ -21,6 +21,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     // Masters
     public DbSet<Item> Items => Set<Item>();
     public DbSet<ItemUnitMapping> ItemUnitMappings => Set<ItemUnitMapping>();
+    public DbSet<TaxMaster> TaxMasters => Set<TaxMaster>();
     public DbSet<Unit> Units => Set<Unit>();
 
     // Tenant Related
