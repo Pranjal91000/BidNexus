@@ -23,13 +23,6 @@ namespace Infrastructure.EntityConfigurations.AuctionsRelated
                 .WithMany()
                 .HasForeignKey(x => x.AuctionRequirementId)
                 .HasConstraintName("FK_BidDetail_AuctionRequirementId")
-                .OnDelete(DeleteBehavior.Restrict);
-
-            builder.HasMany(x => x.Taxes)
-                .WithOne(x => x.BidDetail)
-                .HasForeignKey(x => x.BidDetailId)
-                .HasConstraintName("FK_BidTaxDetail_BidDetailId")
-                .OnDelete(DeleteBehavior.Cascade);
-        }
+                .OnDelete(DeleteBehavior.Restrict);        }
     }
 }
