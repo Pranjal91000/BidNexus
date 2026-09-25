@@ -17,6 +17,9 @@ namespace Infrastructure.EntityConfigurations.Master
             MasterBaseEntityConfiguration.Configure(builder);
             builder.HasQueryFilter(x => x.TenantId == _jwtHelper.GetTenantId());
 
+            builder.HasIndex(x => new { x.TenantId, x.Code }).IsUnique();
+            builder.HasIndex(x => new { x.TenantId, x.Name }).IsUnique();
+
             builder.Property(x => x.TaxNatureId).IsRequired();
             builder.Property(x => x.ChargeTypeId).IsRequired();
             builder.Property(x => x.TaxValue).HasPrecision(18, 4).IsRequired();
