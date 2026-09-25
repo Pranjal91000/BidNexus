@@ -1050,19 +1050,19 @@ namespace Infrastructure.Migrations
                     b.HasOne("Core.Entities.GlobalData.ChargeType", "ChargeType")
                         .WithMany()
                         .HasForeignKey("ChargeTypeId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("Core.Entities.GlobalData.Status", "Status")
                         .WithMany()
                         .HasForeignKey("StatusId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("Core.Entities.GlobalData.TaxNature", "TaxNature")
                         .WithMany()
                         .HasForeignKey("TaxNatureId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("ChargeType");
