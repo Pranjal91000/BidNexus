@@ -267,6 +267,11 @@ namespace Infrastructure.Migrations
                     b.Property<int?>("TaxId")
                         .HasColumnType("integer");
 
+                    b.Property<string>("TaxCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
                     b.Property<string>("TaxName")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -609,6 +614,12 @@ namespace Infrastructure.Migrations
                     b.HasIndex("StatusId");
 
                     b.HasIndex("TaxNatureId");
+
+                    b.HasIndex("TenantId", "Code")
+                        .IsUnique();
+
+                    b.HasIndex("TenantId", "Name")
+                        .IsUnique();
 
                     b.ToTable("TaxMasters");
                 });
