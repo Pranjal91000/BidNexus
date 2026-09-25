@@ -1,3 +1,4 @@
+using Core.Abstraction.Services;
 using Core.Entities.Auction;
 using Infrastructure.EntityConfigurations.Shared;
 using Microsoft.EntityFrameworkCore;
@@ -5,8 +6,9 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Infrastructure.EntityConfigurations.AuctionsRelated
 {
-    public class AuctionEntityConfiguration(): IEntityTypeConfiguration<Auction>
+    public class AuctionEntityConfiguration(IJwtHelperService jwtHelperService): IEntityTypeConfiguration<Auction>
     {
+        private readonly IJwtHelperService _jwtHelper = jwtHelperService;
         public void Configure(EntityTypeBuilder<Auction> builder)
         {
             builder.ToTable("Auction", "AuctionRel");
@@ -31,6 +33,8 @@ namespace Infrastructure.EntityConfigurations.AuctionsRelated
                 .HasForeignKey(x => x.StatusId)
                 .HasConstraintName("FK_Auction_StatusId")
                 .OnDelete(DeleteBehavior.Restrict);
+
+            builder.HasQueryFilter(x => x.TenantId == _jwtHelper.GetTenantId());
         }
     }
 }

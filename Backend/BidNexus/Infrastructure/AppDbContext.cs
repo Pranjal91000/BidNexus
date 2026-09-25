@@ -1,7 +1,7 @@
 using Core.Entities.Auction;
 using Core.Entities.GlobalData;
 using Core.Entities.Master;
-using Core.Entities.Tenant;
+using Core.Entities.TenantRelated;
 using Core.Entities.Utilities;
 using Microsoft.EntityFrameworkCore;
 

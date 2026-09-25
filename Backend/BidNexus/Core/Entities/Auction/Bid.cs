@@ -1,4 +1,4 @@
-﻿using Core.Entities.Tenant;
+using Core.Entities.TenantRelated;
 
 namespace Core.Entities.Auction
 {
