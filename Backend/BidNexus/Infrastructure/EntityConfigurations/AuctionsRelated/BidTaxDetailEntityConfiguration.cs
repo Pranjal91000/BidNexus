@@ -16,6 +16,7 @@ namespace Infrastructure.EntityConfigurations.AuctionsRelated
             builder.Property(x => x.BidDetailId).IsRequired();
             builder.Property(x => x.TaxId).IsRequired(false);
             builder.Property(x => x.TaxName).HasMaxLength(100).IsRequired();
+            builder.Property(x => x.TaxCode).HasMaxLength(50).IsRequired();
             builder.Property(x => x.TaxNatureId).IsRequired();
             builder.Property(x => x.ChargeTypeId).IsRequired();
             builder.Property(x => x.TaxValue).HasPrecision(18, 4).IsRequired();
