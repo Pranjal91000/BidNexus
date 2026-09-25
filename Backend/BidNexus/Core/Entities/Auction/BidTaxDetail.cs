@@ -13,6 +13,7 @@ namespace Core.Entities.Auction
         // Snapshot of the tax master information
         public int? TaxId { get; set; }
         public string TaxName { get; set; } = string.Empty;
+        public string TaxCode { get; set; } = string.Empty;
 
         public short TaxNatureId { get; set; }
         public short ChargeTypeId { get; set; }

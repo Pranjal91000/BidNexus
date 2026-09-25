@@ -1,3 +1,4 @@
+using Core.Abstraction.Services;
 using Core.Entities.GlobalData;
 using Core.Entities.Master;
 using Infrastructure.EntityConfigurations.Shared;
@@ -6,12 +7,18 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Infrastructure.EntityConfigurations.Master
 {
-    public class TaxMasterEntityConfiguration : IEntityTypeConfiguration<TaxMaster>
+    public class TaxMasterEntityConfiguration(IJwtHelperService jwtHelperService) : IEntityTypeConfiguration<TaxMaster>
     {
+        private readonly IJwtHelperService _jwtHelper = jwtHelperService;
+
         public void Configure(EntityTypeBuilder<TaxMaster> builder)
         {
             builder.ToTable("TaxMaster", "Master");
             MasterBaseEntityConfiguration.Configure(builder);
+            builder.HasQueryFilter(x => x.TenantId == _jwtHelper.GetTenantId());
+
+            builder.HasIndex(x => new { x.TenantId, x.Code }).IsUnique();
+            builder.HasIndex(x => new { x.TenantId, x.Name }).IsUnique();
 
             builder.Property(x => x.TaxNatureId).IsRequired();
             builder.Property(x => x.ChargeTypeId).IsRequired();

@@ -1,5 +1,5 @@
 using Core.Entities.Auction;
-using Core.Entities.Tenant;
+using Core.Entities.TenantRelated;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 

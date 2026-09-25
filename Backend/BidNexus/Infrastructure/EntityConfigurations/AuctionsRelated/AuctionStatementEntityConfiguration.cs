@@ -1,16 +1,20 @@
-﻿using Infrastructure.EntityConfigurations.Shared;
+using Core.Abstraction.Services;
+using Infrastructure.EntityConfigurations.Shared;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Core.Entities.Auction;
 
 namespace Infrastructure.EntityConfigurations.AuctionsRelated
 {
-    public class AuctionStatementEntityConfiguration: IEntityTypeConfiguration<AuctionStatement>
+    public class AuctionStatementEntityConfiguration(IJwtHelperService jwtHelperService): IEntityTypeConfiguration<AuctionStatement>
     {
+        private readonly IJwtHelperService _jwtHelper = jwtHelperService;
+
         public void Configure(EntityTypeBuilder<AuctionStatement> builder)
         {
             builder.ToTable("AuctionStatement", "AuctionRel");
             BaseEntityConfiguration.Configure(builder);
+            builder.HasQueryFilter(x => x.TenantId == _jwtHelper.GetTenantId());
             builder.Property(x => x.AuctionId).IsRequired();
             builder.Property(x => x.BidId).IsRequired();
             builder.Property(x => x.VendorId).IsRequired();

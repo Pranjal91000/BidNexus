@@ -1,4 +1,4 @@
-﻿using Core.Entities.Authentication;
+using Core.Entities.Authentication;
 using Infrastructure.EntityConfigurations.Shared;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
