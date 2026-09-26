@@ -3,7 +3,7 @@ using Core.Models.Tenant;
 using Microsoft.EntityFrameworkCore;
 using TenantEntity = Core.Entities.TenantRelated.Tenant;
 
-namespace Infrastructure.Repository.Authentication
+namespace Infrastructure.Repository.Tenant
 {
     public class TenantRepository(AppDbContext dbContext) : ITenantRepository
     {

@@ -16,7 +16,6 @@ namespace API.Services.Authentication
         ITenantRepository tenantRepository, 
         IVendorRepository vendorRepository, 
         IOrganizationRepository organizationRepository,
-        IConfiguration configuration,
         IAuthenticationCoreService authenticationCoreService,
         AppDbContext dbContext): IRegistrationService
     {
