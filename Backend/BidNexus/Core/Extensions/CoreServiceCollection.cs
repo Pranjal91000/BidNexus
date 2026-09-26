@@ -1,9 +1,7 @@
 using Core.Abstraction.Services;
+using Core.Abstraction.TenantRelated;
 using Core.Services;
 using Microsoft.Extensions.DependencyInjection;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Core.Extensions
 {
@@ -13,6 +11,7 @@ namespace Core.Extensions
         {
             services.AddHttpContextAccessor();
             services.AddScoped<IJwtHelperService, JwtHelperService>();
+            services.AddScoped<IAuthenticationCoreService, AuthenticationCoreService>();
             return services;
         }
     }

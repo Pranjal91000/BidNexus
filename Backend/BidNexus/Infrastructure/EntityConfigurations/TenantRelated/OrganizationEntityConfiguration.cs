@@ -9,7 +9,7 @@ namespace Infrastructure.EntityConfigurations.TenantRelated
     {
         public void Configure(EntityTypeBuilder<Organization> builder)
         {
-            builder.ToTable("Organization", "Tenant");
+            builder.ToTable("Organization", "TenantRel");
             BaseEntityConfiguration.Configure(builder);
 
             builder.Property(x => x.Name).IsRequired();

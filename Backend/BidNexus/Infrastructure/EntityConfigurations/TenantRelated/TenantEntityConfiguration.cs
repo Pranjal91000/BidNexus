@@ -8,7 +8,7 @@ namespace Infrastructure.EntityConfigurations.TenantRelated
     {
         public void Configure(EntityTypeBuilder<Tenant> builder)
         {
-            builder.ToTable("Tenant", "Tenant");
+            builder.ToTable("Tenant", "TenantRel");
 
             builder.HasKey(x => x.Id);
             builder.Property(x => x.Id).ValueGeneratedOnAdd();

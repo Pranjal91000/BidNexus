@@ -9,7 +9,7 @@ namespace Infrastructure.EntityConfigurations.TenantRelated
     {
         public void Configure(EntityTypeBuilder<Vendor> builder)
         {
-            builder.ToTable("Vendor", "Tenant");
+            builder.ToTable("Vendor", "TenantRel");
             BaseEntityConfiguration.Configure(builder);
 
             builder.Property(x => x.ForegroundImageId).IsRequired(false);

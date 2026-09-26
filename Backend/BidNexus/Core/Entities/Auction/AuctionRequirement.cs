@@ -5,6 +5,7 @@ namespace Core.Entities.Auction
 {
     public class AuctionRequirement : BaseEntity
     {
+        public short LineNo { get; set; }
         public int AuctionId { get; set; }
         public int ItemId { get; set; }
         public string? TechnicalSpecification { get; set; }

@@ -23,7 +23,6 @@ namespace API.Services.Authentication
         private readonly ITenantRepository _tenantRepository = tenantRepository;
         private readonly IVendorRepository _vendorRepository = vendorRepository;
         private readonly IOrganizationRepository _organizationRepository = organizationRepository;
-        private readonly IConfiguration _configuration = configuration;
         public readonly IAuthenticationCoreService _authCoreService = authenticationCoreService;
         private readonly AppDbContext _dbContext = dbContext;
 

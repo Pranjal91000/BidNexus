@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Infrastructure.EntityConfigurations.AuctionsRelated
 {
-    public class AuctionIRequirementEntityConfiguration(IJwtHelperService jwtHelperService): IEntityTypeConfiguration<AuctionRequirement>
+    public class AuctionRequirementEntityConfiguration(IJwtHelperService jwtHelperService): IEntityTypeConfiguration<AuctionRequirement>
     {
         private readonly IJwtHelperService _jwtHelper = jwtHelperService;
 
@@ -29,6 +29,8 @@ namespace Infrastructure.EntityConfigurations.AuctionsRelated
             builder.Property(x => x.UnitId).IsRequired();
 
             builder.Property(x => x.DocumentAttachmentId).IsRequired(false);
+
+            builder.Property(x => x.LineNo).IsRequired();
 
             builder.HasOne(x => x.Unit)
                 .WithMany()

@@ -7,7 +7,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialSetup : Migration
+    public partial class Initial : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -19,13 +19,10 @@ namespace Infrastructure.Migrations
                 name: "GlobalData");
 
             migrationBuilder.EnsureSchema(
-                name: "Master");
-
-            migrationBuilder.EnsureSchema(
                 name: "Auth");
 
             migrationBuilder.EnsureSchema(
-                name: "Tenant");
+                name: "TenantRel");
 
             migrationBuilder.EnsureSchema(
                 name: "Utilities");
@@ -125,13 +122,13 @@ namespace Infrastructure.Migrations
 
             migrationBuilder.CreateTable(
                 name: "Tenant",
-                schema: "Tenant",
+                schema: "TenantRel",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    Name = table.Column<int>(type: "integer", nullable: false),
-                    ContactNumber = table.Column<int>(type: "integer", nullable: false),
+                    Name = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
+                    ContactNumber = table.Column<string>(type: "text", nullable: false),
                     EmailAddress = table.Column<string>(type: "text", nullable: false),
                     UserName = table.Column<string>(type: "text", nullable: false),
                     Password = table.Column<string>(type: "text", nullable: false),
@@ -145,8 +142,7 @@ namespace Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "Unit",
-                schema: "Master",
+                name: "Units",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
@@ -157,22 +153,21 @@ namespace Infrastructure.Migrations
                     CreatedDateTime = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     LastModifiedDateTime = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     StatusId = table.Column<short>(type: "smallint", nullable: false),
-                    StatusRemarks = table.Column<string>(type: "text", nullable: true)
+                    StatusRemarks = table.Column<string>(type: "text", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Unit", x => x.Id);
+                    table.PrimaryKey("PK_Units", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
-                name: "Item",
-                schema: "Master",
+                name: "Items",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     CategoryId = table.Column<short>(type: "smallint", nullable: false),
-                    ItemDescription = table.Column<string>(type: "text", nullable: true),
+                    ItemDescription = table.Column<string>(type: "text", nullable: false),
                     DocAttachmentId = table.Column<int>(type: "integer", nullable: true),
                     TenantId = table.Column<int>(type: "integer", nullable: false),
                     Name = table.Column<string>(type: "text", nullable: false),
@@ -180,18 +175,18 @@ namespace Infrastructure.Migrations
                     CreatedDateTime = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     LastModifiedDateTime = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     StatusId = table.Column<short>(type: "smallint", nullable: false),
-                    StatusRemarks = table.Column<string>(type: "text", nullable: true)
+                    StatusRemarks = table.Column<string>(type: "text", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Item", x => x.Id);
+                    table.PrimaryKey("PK_Items", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_Item_CategoryId",
+                        name: "FK_Items_Category_CategoryId",
                         column: x => x.CategoryId,
                         principalSchema: "GlobalData",
                         principalTable: "Category",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -219,52 +214,51 @@ namespace Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "TaxMaster",
-                schema: "Master",
+                name: "TaxMasters",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     TaxNatureId = table.Column<short>(type: "smallint", nullable: false),
                     ChargeTypeId = table.Column<short>(type: "smallint", nullable: false),
-                    TaxValue = table.Column<decimal>(type: "numeric(18,4)", precision: 18, scale: 4, nullable: false),
+                    TaxValue = table.Column<decimal>(type: "numeric", nullable: false),
                     TenantId = table.Column<int>(type: "integer", nullable: false),
                     Name = table.Column<string>(type: "text", nullable: false),
                     Code = table.Column<string>(type: "text", nullable: false),
                     CreatedDateTime = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     LastModifiedDateTime = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     StatusId = table.Column<short>(type: "smallint", nullable: false),
-                    StatusRemarks = table.Column<string>(type: "text", nullable: true)
+                    StatusRemarks = table.Column<string>(type: "text", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_TaxMaster", x => x.Id);
+                    table.PrimaryKey("PK_TaxMasters", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_TaxMaster_ChargeTypeId",
+                        name: "FK_TaxMasters_ChargeType_ChargeTypeId",
                         column: x => x.ChargeTypeId,
                         principalSchema: "GlobalData",
                         principalTable: "ChargeType",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
+                        onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_TaxMaster_StatusId",
+                        name: "FK_TaxMasters_Status_StatusId",
                         column: x => x.StatusId,
                         principalSchema: "GlobalData",
                         principalTable: "Status",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
+                        onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_TaxMaster_TaxNatureId",
+                        name: "FK_TaxMasters_TaxNature_TaxNatureId",
                         column: x => x.TaxNatureId,
                         principalSchema: "GlobalData",
                         principalTable: "TaxNature",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
                 name: "Organization",
-                schema: "Tenant",
+                schema: "TenantRel",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
@@ -281,7 +275,7 @@ namespace Infrastructure.Migrations
                     table.ForeignKey(
                         name: "FK_Organization_TenantId",
                         column: x => x.TenantId,
-                        principalSchema: "Tenant",
+                        principalSchema: "TenantRel",
                         principalTable: "Tenant",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
@@ -289,7 +283,7 @@ namespace Infrastructure.Migrations
 
             migrationBuilder.CreateTable(
                 name: "Vendor",
-                schema: "Tenant",
+                schema: "TenantRel",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
@@ -305,15 +299,14 @@ namespace Infrastructure.Migrations
                     table.ForeignKey(
                         name: "FK_Organization_TenantId",
                         column: x => x.TenantId,
-                        principalSchema: "Tenant",
+                        principalSchema: "TenantRel",
                         principalTable: "Tenant",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
-                name: "ItemUnitMapping",
-                schema: "Master",
+                name: "ItemUnitMappings",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
@@ -324,26 +317,17 @@ namespace Infrastructure.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_ItemUnitMapping", x => x.Id);
+                    table.PrimaryKey("PK_ItemUnitMappings", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_ItemUnitMapping_ItemId",
+                        name: "FK_ItemUnitMappings_Items_ItemId",
                         column: x => x.ItemId,
-                        principalSchema: "Master",
-                        principalTable: "Item",
+                        principalTable: "Items",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_ItemUnitMapping_UnitId",
-                        column: x => x.UnitId,
-                        principalSchema: "Master",
-                        principalTable: "Unit",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
-                name: "Auction",
-                schema: "AuctionRel",
+                name: "Auctions",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
@@ -364,62 +348,59 @@ namespace Infrastructure.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Auction", x => x.Id);
+                    table.PrimaryKey("PK_Auctions", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_Auction_OrganizationId",
+                        name: "FK_Auctions_Organization_OrganizationId",
                         column: x => x.OrganizationId,
-                        principalSchema: "Tenant",
+                        principalSchema: "TenantRel",
                         principalTable: "Organization",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
+                        onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_Auction_StatusId",
+                        name: "FK_Auctions_Status_StatusId",
                         column: x => x.StatusId,
                         principalSchema: "GlobalData",
                         principalTable: "Status",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
-                name: "AuctionRequirement",
-                schema: "AuctionRel",
+                name: "AuctionRequirements",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    LineNo = table.Column<short>(type: "smallint", nullable: false),
                     AuctionId = table.Column<int>(type: "integer", nullable: false),
                     ItemId = table.Column<int>(type: "integer", nullable: false),
                     TechnicalSpecification = table.Column<string>(type: "text", nullable: true),
-                    Quantity = table.Column<decimal>(type: "numeric(18,3)", precision: 18, scale: 3, nullable: false),
+                    Quantity = table.Column<decimal>(type: "numeric", nullable: false),
                     UnitId = table.Column<int>(type: "integer", nullable: false),
                     DocumentAttachmentId = table.Column<long>(type: "bigint", nullable: true),
                     TenantId = table.Column<int>(type: "integer", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_AuctionRequirement", x => x.Id);
+                    table.PrimaryKey("PK_AuctionRequirements", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_AuctionRequirement_AuctioId",
+                        name: "FK_AuctionRequirements_Auctions_AuctionId",
                         column: x => x.AuctionId,
-                        principalSchema: "AuctionRel",
-                        principalTable: "Auction",
+                        principalTable: "Auctions",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_AuctionRequirement_ItemId",
+                        name: "FK_AuctionRequirements_Items_ItemId",
                         column: x => x.ItemId,
-                        principalSchema: "Master",
-                        principalTable: "Item",
+                        principalTable: "Items",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
+                        onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_AuctionRequirement_UnitId",
+                        name: "FK_AuctionRequirements_Units_UnitId",
                         column: x => x.UnitId,
-                        principalSchema: "Master",
-                        principalTable: "Unit",
+                        principalTable: "Units",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -446,8 +427,7 @@ namespace Infrastructure.Migrations
                     table.ForeignKey(
                         name: "FK_Bid_AuctionId",
                         column: x => x.AuctionId,
-                        principalSchema: "AuctionRel",
-                        principalTable: "Auction",
+                        principalTable: "Auctions",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
@@ -460,7 +440,7 @@ namespace Infrastructure.Migrations
                     table.ForeignKey(
                         name: "FK_Bid_VendorId",
                         column: x => x.VendorId,
-                        principalSchema: "Tenant",
+                        principalSchema: "TenantRel",
                         principalTable: "Vendor",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
@@ -483,29 +463,27 @@ namespace Infrastructure.Migrations
                     table.ForeignKey(
                         name: "FK_Rating_AgainstTenant",
                         column: x => x.AgainstTenant,
-                        principalSchema: "Tenant",
+                        principalSchema: "TenantRel",
                         principalTable: "Tenant",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_Rating_AuctionId",
                         column: x => x.AuctionId,
-                        principalSchema: "AuctionRel",
-                        principalTable: "Auction",
+                        principalTable: "Auctions",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_Rating_SubmittedByTenant",
                         column: x => x.SubmittedByTenant,
-                        principalSchema: "Tenant",
+                        principalSchema: "TenantRel",
                         principalTable: "Tenant",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
-                name: "VendorIntent",
-                schema: "AuctionRel",
+                name: "VendorIntents",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
@@ -518,26 +496,24 @@ namespace Infrastructure.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_VendorIntent", x => x.Id);
+                    table.PrimaryKey("PK_VendorIntents", x => x.Id);
                     table.ForeignKey(
-                        name: "Fk_VendorIntent_AuctionId",
+                        name: "FK_VendorIntents_Auctions_AuctionId",
                         column: x => x.AuctionId,
-                        principalSchema: "AuctionRel",
-                        principalTable: "Auction",
+                        principalTable: "Auctions",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
+                        onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "Fk_VendorIntent_VendorId",
+                        name: "FK_VendorIntents_Vendor_VendorId",
                         column: x => x.VendorId,
-                        principalSchema: "Tenant",
+                        principalSchema: "TenantRel",
                         principalTable: "Vendor",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
-                name: "AuctionStatement",
-                schema: "AuctionRel",
+                name: "AuctionStatements",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
@@ -551,25 +527,24 @@ namespace Infrastructure.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_AuctionStatement", x => x.Id);
+                    table.PrimaryKey("PK_AuctionStatements", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_AuctionStatement_AuctionId",
+                        name: "FK_AuctionStatements_Auctions_AuctionId",
                         column: x => x.AuctionId,
-                        principalSchema: "AuctionRel",
-                        principalTable: "Auction",
+                        principalTable: "Auctions",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_AuctionStatement_BidId",
+                        name: "FK_AuctionStatements_Bid_BidId",
                         column: x => x.BidId,
                         principalSchema: "AuctionRel",
                         principalTable: "Bid",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_AuctionStatement_VendorId",
+                        name: "FK_AuctionStatements_Vendor_VendorId",
                         column: x => x.VendorId,
-                        principalSchema: "Tenant",
+                        principalSchema: "TenantRel",
                         principalTable: "Vendor",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -594,8 +569,7 @@ namespace Infrastructure.Migrations
                     table.ForeignKey(
                         name: "FK_BidDetail_AuctionRequirementId",
                         column: x => x.AuctionRequirementId,
-                        principalSchema: "AuctionRel",
-                        principalTable: "AuctionRequirement",
+                        principalTable: "AuctionRequirements",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
@@ -649,6 +623,7 @@ namespace Infrastructure.Migrations
                     BidDetailId = table.Column<long>(type: "bigint", nullable: false),
                     TaxId = table.Column<int>(type: "integer", nullable: true),
                     TaxName = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    TaxCode = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
                     TaxNatureId = table.Column<short>(type: "smallint", nullable: false),
                     ChargeTypeId = table.Column<short>(type: "smallint", nullable: false),
                     TaxValue = table.Column<decimal>(type: "numeric(18,4)", precision: 18, scale: 4, nullable: false),
@@ -674,8 +649,7 @@ namespace Infrastructure.Migrations
                     table.ForeignKey(
                         name: "FK_BidTaxDetail_TaxId",
                         column: x => x.TaxId,
-                        principalSchema: "Master",
-                        principalTable: "TaxMaster",
+                        principalTable: "TaxMasters",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
@@ -688,55 +662,45 @@ namespace Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateIndex(
-                name: "IX_Auction_OrganizationId",
-                schema: "AuctionRel",
-                table: "Auction",
-                column: "OrganizationId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Auction_StatusId",
-                schema: "AuctionRel",
-                table: "Auction",
-                column: "StatusId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_AuctionRequirement_AuctionId",
-                schema: "AuctionRel",
-                table: "AuctionRequirement",
+                name: "IX_AuctionRequirements_AuctionId",
+                table: "AuctionRequirements",
                 column: "AuctionId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_AuctionRequirement_ItemId",
-                schema: "AuctionRel",
-                table: "AuctionRequirement",
+                name: "IX_AuctionRequirements_ItemId",
+                table: "AuctionRequirements",
                 column: "ItemId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_AuctionRequirement_UnitId",
-                schema: "AuctionRel",
-                table: "AuctionRequirement",
+                name: "IX_AuctionRequirements_UnitId",
+                table: "AuctionRequirements",
                 column: "UnitId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_AuctionStatement_AuctionId",
-                schema: "AuctionRel",
-                table: "AuctionStatement",
+                name: "IX_Auctions_OrganizationId",
+                table: "Auctions",
+                column: "OrganizationId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Auctions_StatusId",
+                table: "Auctions",
+                column: "StatusId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AuctionStatements_AuctionId",
+                table: "AuctionStatements",
                 column: "AuctionId",
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_AuctionStatement_BidId",
-                schema: "AuctionRel",
-                table: "AuctionStatement",
-                column: "BidId",
-                unique: true);
+                name: "IX_AuctionStatements_BidId",
+                table: "AuctionStatements",
+                column: "BidId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_AuctionStatement_VendorId",
-                schema: "AuctionRel",
-                table: "AuctionStatement",
-                column: "VendorId",
-                unique: true);
+                name: "IX_AuctionStatements_VendorId",
+                table: "AuctionStatements",
+                column: "VendorId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Bid_AuctionId",
@@ -793,22 +757,14 @@ namespace Infrastructure.Migrations
                 column: "TaxNatureId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Item_CategoryId",
-                schema: "Master",
-                table: "Item",
+                name: "IX_Items_CategoryId",
+                table: "Items",
                 column: "CategoryId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_ItemUnitMapping_ItemId",
-                schema: "Master",
-                table: "ItemUnitMapping",
+                name: "IX_ItemUnitMappings_ItemId",
+                table: "ItemUnitMappings",
                 column: "ItemId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_ItemUnitMapping_UnitId",
-                schema: "Master",
-                table: "ItemUnitMapping",
-                column: "UnitId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_LoginAttempt_StatusId",
@@ -819,7 +775,7 @@ namespace Infrastructure.Migrations
 
             migrationBuilder.CreateIndex(
                 name: "IX_Organization_TenantId",
-                schema: "Tenant",
+                schema: "TenantRel",
                 table: "Organization",
                 column: "TenantId");
 
@@ -854,53 +810,48 @@ namespace Infrastructure.Migrations
                 column: "RatingParameterId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_TaxMaster_ChargeTypeId",
-                schema: "Master",
-                table: "TaxMaster",
+                name: "IX_TaxMasters_ChargeTypeId",
+                table: "TaxMasters",
                 column: "ChargeTypeId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_TaxMaster_StatusId",
-                schema: "Master",
-                table: "TaxMaster",
+                name: "IX_TaxMasters_StatusId",
+                table: "TaxMasters",
                 column: "StatusId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_TaxMaster_TaxNatureId",
-                schema: "Master",
-                table: "TaxMaster",
+                name: "IX_TaxMasters_TaxNatureId",
+                table: "TaxMasters",
                 column: "TaxNatureId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Tenant_EmailAddress",
-                schema: "Tenant",
+                schema: "TenantRel",
                 table: "Tenant",
                 column: "EmailAddress",
                 unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_Tenant_UserName",
-                schema: "Tenant",
+                schema: "TenantRel",
                 table: "Tenant",
                 column: "UserName",
                 unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_Vendor_TenantId",
-                schema: "Tenant",
+                schema: "TenantRel",
                 table: "Vendor",
                 column: "TenantId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_VendorIntent_AuctionId",
-                schema: "AuctionRel",
-                table: "VendorIntent",
+                name: "IX_VendorIntents_AuctionId",
+                table: "VendorIntents",
                 column: "AuctionId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_VendorIntent_VendorId",
-                schema: "AuctionRel",
-                table: "VendorIntent",
+                name: "IX_VendorIntents_VendorId",
+                table: "VendorIntents",
                 column: "VendorId");
         }
 
@@ -908,16 +859,14 @@ namespace Infrastructure.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "AuctionStatement",
-                schema: "AuctionRel");
+                name: "AuctionStatements");
 
             migrationBuilder.DropTable(
                 name: "BidTaxDetail",
                 schema: "AuctionRel");
 
             migrationBuilder.DropTable(
-                name: "ItemUnitMapping",
-                schema: "Master");
+                name: "ItemUnitMappings");
 
             migrationBuilder.DropTable(
                 name: "LoginAttempt",
@@ -932,16 +881,14 @@ namespace Infrastructure.Migrations
                 schema: "Utilities");
 
             migrationBuilder.DropTable(
-                name: "VendorIntent",
-                schema: "AuctionRel");
+                name: "VendorIntents");
 
             migrationBuilder.DropTable(
                 name: "BidDetail",
                 schema: "AuctionRel");
 
             migrationBuilder.DropTable(
-                name: "TaxMaster",
-                schema: "Master");
+                name: "TaxMasters");
 
             migrationBuilder.DropTable(
                 name: "RatingParameter",
@@ -952,8 +899,7 @@ namespace Infrastructure.Migrations
                 schema: "Utilities");
 
             migrationBuilder.DropTable(
-                name: "AuctionRequirement",
-                schema: "AuctionRel");
+                name: "AuctionRequirements");
 
             migrationBuilder.DropTable(
                 name: "Bid",
@@ -968,20 +914,17 @@ namespace Infrastructure.Migrations
                 schema: "GlobalData");
 
             migrationBuilder.DropTable(
-                name: "Item",
-                schema: "Master");
+                name: "Items");
 
             migrationBuilder.DropTable(
-                name: "Unit",
-                schema: "Master");
+                name: "Units");
 
             migrationBuilder.DropTable(
-                name: "Auction",
-                schema: "AuctionRel");
+                name: "Auctions");
 
             migrationBuilder.DropTable(
                 name: "Vendor",
-                schema: "Tenant");
+                schema: "TenantRel");
 
             migrationBuilder.DropTable(
                 name: "Category",
@@ -989,7 +932,7 @@ namespace Infrastructure.Migrations
 
             migrationBuilder.DropTable(
                 name: "Organization",
-                schema: "Tenant");
+                schema: "TenantRel");
 
             migrationBuilder.DropTable(
                 name: "Status",
@@ -997,7 +940,7 @@ namespace Infrastructure.Migrations
 
             migrationBuilder.DropTable(
                 name: "Tenant",
-                schema: "Tenant");
+                schema: "TenantRel");
         }
     }
 }

@@ -12,7 +12,7 @@ namespace API.Controllers.Authflow
         public async Task<IActionResult> RegisterAsync(RegistrationInputModel input)
         {
             var response = await _registeredServices.Register(input);
-            return Ok(input);
+            return Ok(response);
         }
     }
 }

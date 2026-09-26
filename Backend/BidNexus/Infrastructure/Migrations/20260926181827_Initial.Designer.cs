@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260922165127_Initial Setup")]
-    partial class InitialSetup
+    [Migration("20260926181827_Initial")]
+    partial class Initial
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -40,7 +40,6 @@ namespace Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTimeOffset>("CreatedDateTime")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<Guid?>("DocAttachmentId")
@@ -60,7 +59,6 @@ namespace Infrastructure.Migrations
                         .HasColumnType("boolean");
 
                     b.Property<DateTimeOffset>("LastModifiedDateTime")
-                        .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<bool>("OpenToAll")
@@ -81,7 +79,7 @@ namespace Infrastructure.Migrations
 
                     b.HasIndex("StatusId");
 
-                    b.ToTable("Auction", "AuctionRel");
+                    b.ToTable("Auctions");
                 });
 
             modelBuilder.Entity("Core.Entities.Auction.AuctionRequirement", b =>
@@ -101,9 +99,11 @@ namespace Infrastructure.Migrations
                     b.Property<int>("ItemId")
                         .HasColumnType("integer");
 
+                    b.Property<short>("LineNo")
+                        .HasColumnType("smallint");
+
                     b.Property<decimal>("Quantity")
-                        .HasPrecision(18, 3)
-                        .HasColumnType("numeric(18,3)");
+                        .HasColumnType("numeric");
 
                     b.Property<string>("TechnicalSpecification")
                         .HasColumnType("text");
@@ -122,7 +122,7 @@ namespace Infrastructure.Migrations
 
                     b.HasIndex("UnitId");
 
-                    b.ToTable("AuctionRequirement", "AuctionRel");
+                    b.ToTable("AuctionRequirements");
                 });
 
             modelBuilder.Entity("Core.Entities.Auction.AuctionStatement", b =>
@@ -156,13 +156,11 @@ namespace Infrastructure.Migrations
                     b.HasIndex("AuctionId")
                         .IsUnique();
 
-                    b.HasIndex("BidId")
-                        .IsUnique();
+                    b.HasIndex("BidId");
 
-                    b.HasIndex("VendorId")
-                        .IsUnique();
+                    b.HasIndex("VendorId");
 
-                    b.ToTable("AuctionStatement", "AuctionRel");
+                    b.ToTable("AuctionStatements");
                 });
 
             modelBuilder.Entity("Core.Entities.Auction.Bid", b =>
@@ -272,6 +270,11 @@ namespace Infrastructure.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
 
+                    b.Property<string>("TaxCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
                     b.Property<int?>("TaxId")
                         .HasColumnType("integer");
 
@@ -329,7 +332,7 @@ namespace Infrastructure.Migrations
 
                     b.HasIndex("VendorId");
 
-                    b.ToTable("VendorIntent", "AuctionRel");
+                    b.ToTable("VendorIntents");
                 });
 
             modelBuilder.Entity("Core.Entities.Authentication.LoginAttempt", b =>
@@ -512,17 +515,16 @@ namespace Infrastructure.Migrations
                         .HasColumnType("text");
 
                     b.Property<DateTimeOffset>("CreatedDateTime")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<int?>("DocAttachmentId")
                         .HasColumnType("integer");
 
                     b.Property<string>("ItemDescription")
+                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<DateTimeOffset>("LastModifiedDateTime")
-                        .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Name")
@@ -533,6 +535,7 @@ namespace Infrastructure.Migrations
                         .HasColumnType("smallint");
 
                     b.Property<string>("StatusRemarks")
+                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<int>("TenantId")
@@ -542,7 +545,7 @@ namespace Infrastructure.Migrations
 
                     b.HasIndex("CategoryId");
 
-                    b.ToTable("Item", "Master");
+                    b.ToTable("Items");
                 });
 
             modelBuilder.Entity("Core.Entities.Master.ItemUnitMapping", b =>
@@ -566,9 +569,7 @@ namespace Infrastructure.Migrations
 
                     b.HasIndex("ItemId");
 
-                    b.HasIndex("UnitId");
-
-                    b.ToTable("ItemUnitMapping", "Master");
+                    b.ToTable("ItemUnitMappings");
                 });
 
             modelBuilder.Entity("Core.Entities.Master.TaxMaster", b =>
@@ -587,11 +588,9 @@ namespace Infrastructure.Migrations
                         .HasColumnType("text");
 
                     b.Property<DateTimeOffset>("CreatedDateTime")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTimeOffset>("LastModifiedDateTime")
-                        .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Name")
@@ -602,14 +601,14 @@ namespace Infrastructure.Migrations
                         .HasColumnType("smallint");
 
                     b.Property<string>("StatusRemarks")
+                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<short>("TaxNatureId")
                         .HasColumnType("smallint");
 
                     b.Property<decimal>("TaxValue")
-                        .HasPrecision(18, 4)
-                        .HasColumnType("numeric(18,4)");
+                        .HasColumnType("numeric");
 
                     b.Property<int>("TenantId")
                         .HasColumnType("integer");
@@ -622,7 +621,7 @@ namespace Infrastructure.Migrations
 
                     b.HasIndex("TaxNatureId");
 
-                    b.ToTable("TaxMaster", "Master");
+                    b.ToTable("TaxMasters");
                 });
 
             modelBuilder.Entity("Core.Entities.Master.Unit", b =>
@@ -638,11 +637,9 @@ namespace Infrastructure.Migrations
                         .HasColumnType("text");
 
                     b.Property<DateTimeOffset>("CreatedDateTime")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTimeOffset>("LastModifiedDateTime")
-                        .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Name")
@@ -653,6 +650,7 @@ namespace Infrastructure.Migrations
                         .HasColumnType("smallint");
 
                     b.Property<string>("StatusRemarks")
+                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<int>("TenantId")
@@ -660,7 +658,7 @@ namespace Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Unit", "Master");
+                    b.ToTable("Units");
                 });
 
             modelBuilder.Entity("Core.Entities.TenantRelated.Organization", b =>
@@ -693,7 +691,7 @@ namespace Infrastructure.Migrations
 
                     b.HasIndex("TenantId");
 
-                    b.ToTable("Organization", "Tenant");
+                    b.ToTable("Organization", "TenantRel");
                 });
 
             modelBuilder.Entity("Core.Entities.TenantRelated.Tenant", b =>
@@ -704,8 +702,9 @@ namespace Infrastructure.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("ContactNumber")
-                        .HasColumnType("integer");
+                    b.Property<string>("ContactNumber")
+                        .IsRequired()
+                        .HasColumnType("text");
 
                     b.Property<string>("EmailAddress")
                         .IsRequired()
@@ -717,8 +716,10 @@ namespace Infrastructure.Migrations
                     b.Property<bool>("IsVendor")
                         .HasColumnType("boolean");
 
-                    b.Property<int>("Name")
-                        .HasColumnType("integer");
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
 
                     b.Property<string>("Password")
                         .IsRequired()
@@ -739,7 +740,7 @@ namespace Infrastructure.Migrations
                     b.HasIndex("UserName")
                         .IsUnique();
 
-                    b.ToTable("Tenant", "Tenant");
+                    b.ToTable("Tenant", "TenantRel");
                 });
 
             modelBuilder.Entity("Core.Entities.TenantRelated.Vendor", b =>
@@ -767,7 +768,7 @@ namespace Infrastructure.Migrations
 
                     b.HasIndex("TenantId");
 
-                    b.ToTable("Vendor", "Tenant");
+                    b.ToTable("Vendor", "TenantRel");
                 });
 
             modelBuilder.Entity("Core.Entities.Utilities.Rating", b =>
@@ -838,16 +839,14 @@ namespace Infrastructure.Migrations
                     b.HasOne("Core.Entities.TenantRelated.Organization", "Organization")
                         .WithMany()
                         .HasForeignKey("OrganizationId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired()
-                        .HasConstraintName("FK_Auction_OrganizationId");
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.HasOne("Core.Entities.GlobalData.Status", "Status")
                         .WithMany()
                         .HasForeignKey("StatusId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired()
-                        .HasConstraintName("FK_Auction_StatusId");
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("Organization");
 
@@ -860,22 +859,19 @@ namespace Infrastructure.Migrations
                         .WithMany("AuctionRequirements")
                         .HasForeignKey("AuctionId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("FK_AuctionRequirement_AuctioId");
+                        .IsRequired();
 
                     b.HasOne("Core.Entities.Master.Item", "Item")
                         .WithMany()
                         .HasForeignKey("ItemId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired()
-                        .HasConstraintName("FK_AuctionRequirement_ItemId");
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.HasOne("Core.Entities.Master.Unit", "Unit")
                         .WithMany()
                         .HasForeignKey("UnitId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired()
-                        .HasConstraintName("FK_AuctionRequirement_UnitId");
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("Auction");
 
@@ -890,22 +886,19 @@ namespace Infrastructure.Migrations
                         .WithOne("AuctionStatement")
                         .HasForeignKey("Core.Entities.Auction.AuctionStatement", "AuctionId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("FK_AuctionStatement_AuctionId");
+                        .IsRequired();
 
                     b.HasOne("Core.Entities.Auction.Bid", "Bid")
-                        .WithOne()
-                        .HasForeignKey("Core.Entities.Auction.AuctionStatement", "BidId")
+                        .WithMany()
+                        .HasForeignKey("BidId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("FK_AuctionStatement_BidId");
+                        .IsRequired();
 
                     b.HasOne("Core.Entities.TenantRelated.Vendor", "Vendor")
-                        .WithOne()
-                        .HasForeignKey("Core.Entities.Auction.AuctionStatement", "VendorId")
+                        .WithMany()
+                        .HasForeignKey("VendorId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("FK_AuctionStatement_VendorId");
+                        .IsRequired();
 
                     b.Navigation("Auction");
 
@@ -1006,16 +999,14 @@ namespace Infrastructure.Migrations
                     b.HasOne("Core.Entities.Auction.Auction", "Auction")
                         .WithMany("VendorIntent")
                         .HasForeignKey("AuctionId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired()
-                        .HasConstraintName("Fk_VendorIntent_AuctionId");
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.HasOne("Core.Entities.TenantRelated.Vendor", "Vendor")
                         .WithMany()
                         .HasForeignKey("VendorId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired()
-                        .HasConstraintName("Fk_VendorIntent_VendorId");
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("Auction");
 
@@ -1039,9 +1030,8 @@ namespace Infrastructure.Migrations
                     b.HasOne("Core.Entities.GlobalData.Category", "Category")
                         .WithMany()
                         .HasForeignKey("CategoryId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired()
-                        .HasConstraintName("FK_Item_CategoryId");
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("Category");
                 });
@@ -1052,15 +1042,7 @@ namespace Infrastructure.Migrations
                         .WithMany("ApplicableUnits")
                         .HasForeignKey("ItemId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("FK_ItemUnitMapping_ItemId");
-
-                    b.HasOne("Core.Entities.Master.Unit", null)
-                        .WithMany()
-                        .HasForeignKey("UnitId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired()
-                        .HasConstraintName("FK_ItemUnitMapping_UnitId");
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("Core.Entities.Master.TaxMaster", b =>
@@ -1068,23 +1050,20 @@ namespace Infrastructure.Migrations
                     b.HasOne("Core.Entities.GlobalData.ChargeType", "ChargeType")
                         .WithMany()
                         .HasForeignKey("ChargeTypeId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired()
-                        .HasConstraintName("FK_TaxMaster_ChargeTypeId");
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.HasOne("Core.Entities.GlobalData.Status", "Status")
                         .WithMany()
                         .HasForeignKey("StatusId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired()
-                        .HasConstraintName("FK_TaxMaster_StatusId");
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.HasOne("Core.Entities.GlobalData.TaxNature", "TaxNature")
                         .WithMany()
                         .HasForeignKey("TaxNatureId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired()
-                        .HasConstraintName("FK_TaxMaster_TaxNatureId");
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("ChargeType");
 

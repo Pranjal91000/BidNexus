@@ -96,6 +96,9 @@ namespace Infrastructure.Migrations
                     b.Property<int>("ItemId")
                         .HasColumnType("integer");
 
+                    b.Property<short>("LineNo")
+                        .HasColumnType("smallint");
+
                     b.Property<decimal>("Quantity")
                         .HasColumnType("numeric");
 
@@ -264,13 +267,13 @@ namespace Infrastructure.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
 
-                    b.Property<int?>("TaxId")
-                        .HasColumnType("integer");
-
                     b.Property<string>("TaxCode")
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
+
+                    b.Property<int?>("TaxId")
+                        .HasColumnType("integer");
 
                     b.Property<string>("TaxName")
                         .IsRequired()
@@ -615,12 +618,6 @@ namespace Infrastructure.Migrations
 
                     b.HasIndex("TaxNatureId");
 
-                    b.HasIndex("TenantId", "Code")
-                        .IsUnique();
-
-                    b.HasIndex("TenantId", "Name")
-                        .IsUnique();
-
                     b.ToTable("TaxMasters");
                 });
 
@@ -691,7 +688,7 @@ namespace Infrastructure.Migrations
 
                     b.HasIndex("TenantId");
 
-                    b.ToTable("Organization", "Tenant");
+                    b.ToTable("Organization", "TenantRel");
                 });
 
             modelBuilder.Entity("Core.Entities.TenantRelated.Tenant", b =>
@@ -740,7 +737,7 @@ namespace Infrastructure.Migrations
                     b.HasIndex("UserName")
                         .IsUnique();
 
-                    b.ToTable("Tenant", "Tenant");
+                    b.ToTable("Tenant", "TenantRel");
                 });
 
             modelBuilder.Entity("Core.Entities.TenantRelated.Vendor", b =>
@@ -768,7 +765,7 @@ namespace Infrastructure.Migrations
 
                     b.HasIndex("TenantId");
 
-                    b.ToTable("Vendor", "Tenant");
+                    b.ToTable("Vendor", "TenantRel");
                 });
 
             modelBuilder.Entity("Core.Entities.Utilities.Rating", b =>
@@ -1050,19 +1047,19 @@ namespace Infrastructure.Migrations
                     b.HasOne("Core.Entities.GlobalData.ChargeType", "ChargeType")
                         .WithMany()
                         .HasForeignKey("ChargeTypeId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("Core.Entities.GlobalData.Status", "Status")
                         .WithMany()
                         .HasForeignKey("StatusId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("Core.Entities.GlobalData.TaxNature", "TaxNature")
                         .WithMany()
                         .HasForeignKey("TaxNatureId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("ChargeType");
