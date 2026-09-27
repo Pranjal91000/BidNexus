@@ -1,4 +1,4 @@
-﻿using Core.Abstraction.Services;
+using Core.Abstraction.Services;
 using Microsoft.AspNetCore.Http;
 using System.Security.Claims;
 
@@ -7,9 +7,9 @@ namespace Core.Services
 
     public class JwtHelperService : IJwtHelperService
     {
-        private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly IHttpContextAccessor? _httpContextAccessor;
 
-        public JwtHelperService(IHttpContextAccessor httpContextAccessor)
+        public JwtHelperService(IHttpContextAccessor? httpContextAccessor = null)
         {
             _httpContextAccessor = httpContextAccessor;
         }

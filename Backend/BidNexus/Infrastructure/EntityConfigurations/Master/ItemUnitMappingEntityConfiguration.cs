@@ -14,6 +14,7 @@ namespace Infrastructure.EntityConfigurations.Master
         {
             builder.ToTable("ItemUnitMapping", "Master");
             BaseEntityConfiguration.Configure(builder);
+            builder.HasIndex(x => new { x.TenantId, x.ItemId, x.UnitId }).IsUnique();
             builder.HasQueryFilter(x => x.TenantId == _jwtHelper.GetTenantId());
 
             builder.Property(x => x.ItemId).IsRequired();

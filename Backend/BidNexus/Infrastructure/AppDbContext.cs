@@ -1,14 +1,22 @@
+using Core.Abstraction.Services;
 using Core.Entities.Auction;
 using Core.Entities.GlobalData;
 using Core.Entities.Master;
 using Core.Entities.TenantRelated;
 using Core.Entities.Utilities;
+using Infrastructure.EntityConfigurations.AuctionsRelated;
+using Infrastructure.EntityConfigurations.Master;
+using Core.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure;
 
-public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
+public class AppDbContext(
+    DbContextOptions<AppDbContext> options,
+    IJwtHelperService? jwtHelperService = null) : DbContext(options)
 {
+    private readonly IJwtHelperService _jwtHelper = jwtHelperService ?? new JwtHelperService();
+
     // Auction Related
     public DbSet<Auction> Auctions => Set<Auction>();
     public DbSet<AuctionRequirement> AuctionRequirements => Set<AuctionRequirement>();
@@ -44,6 +52,16 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
+
+        // Apply entity configurations requiring IJwtHelperService
+        modelBuilder.ApplyConfiguration(new UnitEntityConfiguration(_jwtHelper));
+        modelBuilder.ApplyConfiguration(new ItemEntityConfiguration(_jwtHelper));
+        modelBuilder.ApplyConfiguration(new ItemUnitMappingEntityConfiguration(_jwtHelper));
+        modelBuilder.ApplyConfiguration(new TaxMasterEntityConfiguration(_jwtHelper));
+        modelBuilder.ApplyConfiguration(new AuctionEntityConfiguration(_jwtHelper));
+        modelBuilder.ApplyConfiguration(new AuctionRequirementEntityConfiguration(_jwtHelper));
+        modelBuilder.ApplyConfiguration(new AuctionStatementEntityConfiguration(_jwtHelper));
+        modelBuilder.ApplyConfiguration(new VendorIntentEntityConfiguration(_jwtHelper));
 
         base.OnModelCreating(modelBuilder);
     }

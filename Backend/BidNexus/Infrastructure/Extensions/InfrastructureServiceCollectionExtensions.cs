@@ -8,6 +8,8 @@ using Microsoft.Extensions.DependencyInjection;
 
 using Core.Abstraction.GlobalData;
 using Microsoft.Extensions.Configuration;
+using Core.Abstraction.Master;
+using Infrastructure.Repository.Master;
 
 namespace Infrastructure.Extensions
 {
@@ -38,6 +40,9 @@ namespace Infrastructure.Extensions
             services.AddScoped<IOrganizationRepository, OrganizationRepository>();
             services.AddScoped<IVendorRepository, VendorRepository>();
             services.AddScoped<ITenantRepository, TenantRepository>();
+            services.AddScoped<IUnitRepository, UnitRepository>();
+            services.AddScoped<IItemRepository, ItemRepository>();
+            services.AddScoped<ITaxMasterRepository, TaxMasterRepository>();
 
             return services;
         }
