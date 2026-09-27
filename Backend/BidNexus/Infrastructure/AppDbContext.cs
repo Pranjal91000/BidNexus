@@ -4,7 +4,6 @@ using Core.Entities.GlobalData;
 using Core.Entities.Master;
 using Core.Entities.TenantRelated;
 using Core.Entities.Utilities;
-using Infrastructure.EntityConfigurations.AuctionsRelated;
 using Infrastructure.EntityConfigurations.Master;
 using Core.Services;
 using Microsoft.EntityFrameworkCore;
@@ -58,10 +57,6 @@ public class AppDbContext(
         modelBuilder.ApplyConfiguration(new ItemEntityConfiguration(_jwtHelper));
         modelBuilder.ApplyConfiguration(new ItemUnitMappingEntityConfiguration(_jwtHelper));
         modelBuilder.ApplyConfiguration(new TaxMasterEntityConfiguration(_jwtHelper));
-        modelBuilder.ApplyConfiguration(new AuctionEntityConfiguration(_jwtHelper));
-        modelBuilder.ApplyConfiguration(new AuctionRequirementEntityConfiguration(_jwtHelper));
-        modelBuilder.ApplyConfiguration(new AuctionStatementEntityConfiguration(_jwtHelper));
-        modelBuilder.ApplyConfiguration(new VendorIntentEntityConfiguration(_jwtHelper));
 
         base.OnModelCreating(modelBuilder);
     }
