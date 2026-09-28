@@ -54,9 +54,19 @@ namespace Infrastructure.Repository.AuctionRel
 
             if (existingAuction == null) throw new InvalidOperationException("Auction Not Found");
 
-            _dbContext.Entry(existingAuction).CurrentValues.SetValues(auction);
-            existingAuction.TenantId = tenantId;
-            existingAuction.LastModifiedDateTime = DateTimeOffset.UtcNow;
+            existingAuction.Update(
+                auction.AuctionName,
+                auction.About,
+                auction.DocNoYearly,
+                auction.DocDate,
+                auction.IsForwardAuction,
+                auction.AuctionStartTime,
+                auction.AuctionEndTime,
+                auction.DocAttachmentId,
+                auction.OpenToAll,
+                auction.IsBidPriceHidden,
+                auction.OrganizationId,
+                auction.StatusId);
 
             if (auction.AuctionRequirements != null)
             {
@@ -109,7 +119,30 @@ namespace Infrastructure.Repository.AuctionRel
                 IsBidPriceHidden = auction.IsBidPriceHidden,
                 OrganizationId = auction.OrganizationId,
                 Organization = auction.Organization,
-                AuctionRequirements = auction.AuctionRequirements?.ToList() ?? new List<AuctionRequirement>(),
+                AuctionRequirements = auction.AuctionRequirements?.Select(r => new AuctionRequirementDataModel
+                {
+                    Id = r.Id,
+                    LineNo = r.LineNo,
+                    AuctionId = r.AuctionId,
+                    ItemId = r.ItemId,
+                    TechnicalSpecification = r.TechnicalSpecification,
+                    Quantity = r.Quantity,
+                    UnitId = r.UnitId,
+                    DocumentAttachmentId = r.DocumentAttachmentId,
+                    Item = new ItemDataModel
+                    {
+                        Id = r.Item.Id,
+                        Name = r.Item.Name,
+                        Code = r.Item.Code,
+                        CategoryId = r.Item.CategoryId
+                    },
+                    Unit = new UnitDataModel
+                    {
+                        Id = r.Unit.Id,
+                        Name = r.Unit.Name,
+                        Code = r.Unit.Code
+                    }
+                }).ToList() ?? new List<AuctionRequirementDataModel>(),
                 CreatedDateTime = auction.CreatedDateTime,
                 LastModifiedDateTime = auction.LastModifiedDateTime
             };

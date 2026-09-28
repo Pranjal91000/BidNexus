@@ -6,15 +6,13 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Infrastructure.EntityConfigurations.AuctionsRelated
 {
-    public class AuctionEntityConfiguration(): IEntityTypeConfiguration<Auction>
+    public class AuctionEntityConfiguration(IJwtHelperService jwtHelperService): IEntityTypeConfiguration<Auction>
     {
+        private readonly IJwtHelperService _jwtHelper = jwtHelperService;
         public void Configure(EntityTypeBuilder<Auction> builder)
         {
             builder.ToTable("Auction", "AuctionRel");
             TransactionBasedEnitityConfiguration.Configure(builder);
-            builder.Property(x => x.About).IsRequired();
-            builder.Property(x => x.AuctionName).IsRequired();
-            builder.Property(x => x.AuctionIntentSubmissionDate).IsRequired(false);
             builder.Property(x => x.IsBidPriceHidden).IsRequired();
             builder.Property(x => x.IsForwardAuction).IsRequired();
             builder.Property(x => x.OpenToAll).IsRequired();
@@ -35,6 +33,8 @@ namespace Infrastructure.EntityConfigurations.AuctionsRelated
                 .HasForeignKey(x => x.StatusId)
                 .HasConstraintName("FK_Auction_StatusId")
                 .OnDelete(DeleteBehavior.Restrict);
+
+            builder.HasQueryFilter(x => x.TenantId == _jwtHelper.GetTenantId());
         }
     }
 }

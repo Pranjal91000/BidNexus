@@ -19,7 +19,7 @@ namespace Core.Models.AuctionRelated
         public bool IsBidPriceHidden { get; set; }
         public int OrganizationId { get; set; }
         public Organization Organization { get; set; } = null!;
-        public List<AuctionRequirement> AuctionRequirements { get; set; } = null!;
+        public List<AuctionRequirementDataModel> AuctionRequirements { get; set; } = null!;
         public DateTimeOffset CreatedDateTime { get; set; }
         public DateTimeOffset LastModifiedDateTime { get; set; }
     }

@@ -16,6 +16,8 @@ namespace Infrastructure.EntityConfigurations.AuctionsRelated
 
             BaseEntityConfiguration.Configure(builder);
 
+            builder.HasQueryFilter(x => x.TenantId == _jwtHelper.GetTenantId());
+
             builder.Property(x => x.AuctionId).IsRequired();
 
             builder.Property(x => x.ItemId).IsRequired();

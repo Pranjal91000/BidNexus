@@ -83,5 +83,35 @@ namespace Core.Entities.Auction
             Id = id;
         }
 
+        public Auction() { }
+
+        public void Update(
+            string auctionName,
+            string about,
+            string docNoYearly,
+            DateOnly docDate,
+            bool isForwardAuction,
+            DateTimeOffset auctionStartTime,
+            DateTimeOffset auctionEndTime,
+            Guid? docAttachmentId,
+            bool openToAll,
+            bool isBidPriceHidden,
+            int organizationId,
+            short statusId)
+        {
+            AuctionName = auctionName;
+            About = about;
+            DocNoYearly = docNoYearly;
+            DocDate = docDate;
+            IsForwardAuction = isForwardAuction;
+            AuctionStartTime = auctionStartTime;
+            AuctionEndTime = auctionEndTime;
+            DocAttachmentId = docAttachmentId;
+            OpenToAll = openToAll;
+            IsBidPriceHidden = isBidPriceHidden;
+            OrganizationId = organizationId;
+            StatusId = statusId;
+            LastModifiedDateTime = DateTimeOffset.UtcNow;
+        }
     }
 }
