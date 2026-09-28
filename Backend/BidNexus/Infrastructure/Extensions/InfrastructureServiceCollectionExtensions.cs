@@ -5,11 +5,11 @@ using Infrastructure.Repository.GlobalData;
 using Infrastructure.Repository.Tenant;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-
 using Core.Abstraction.GlobalData;
 using Microsoft.Extensions.Configuration;
 using Core.Abstraction.Master;
 using Infrastructure.Repository.Master;
+using Infrastructure.Extensions.AuctionRel;
 
 namespace Infrastructure.Extensions
 {
@@ -43,6 +43,8 @@ namespace Infrastructure.Extensions
             services.AddScoped<IUnitRepository, UnitRepository>();
             services.AddScoped<IItemRepository, ItemRepository>();
             services.AddScoped<ITaxMasterRepository, TaxMasterRepository>();
+
+            services.AddAuctionInfrastructure();
 
             return services;
         }

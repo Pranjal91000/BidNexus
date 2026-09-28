@@ -1,5 +1,6 @@
 using API.Abstraction.Authentication;
 using API.Abstraction.GlobalData;
+using API.Extensions.AuctionRel;
 using API.Extensions.Master;
 using API.Services.Authentication;
 using API.Services.GlobalData;
@@ -16,6 +17,9 @@ namespace API.Extensions
 
             // Master Services
             services.AddMasterApiServices();
+
+            // Auction Services
+            services.AddAuctionApiServices();
 
             return services;
         }

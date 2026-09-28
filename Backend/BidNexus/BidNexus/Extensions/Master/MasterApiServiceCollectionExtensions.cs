@@ -1,6 +1,5 @@
 using API.Abstraction.Master;
 using API.Services.Master;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace API.Extensions.Master;
 
