@@ -20,6 +20,96 @@ namespace Core.Entities.Auction
         public AuctionStatement AuctionStatement { get; set; } = null!;
         public short StatusId { get; set; }
         public Status Status { get; set; } = null!;
-        
+
+        public Auction(
+            string auctionName,
+            string about,
+            string docNoYearly,
+            DateOnly docDate,
+            bool isForwardAuction,
+            DateTimeOffset auctionStartTime,
+            DateTimeOffset auctionEndTime,
+            Guid? docAttachmentId,
+            bool openToAll,
+            bool isBidPriceHidden,
+            int organizationId,
+            short statusId)
+        {
+            AuctionName = auctionName;
+            About = about;
+            DocNoYearly = docNoYearly;
+            DocDate = docDate;
+            IsForwardAuction = isForwardAuction;
+            AuctionStartTime = auctionStartTime;
+            AuctionEndTime = auctionEndTime;
+            DocAttachmentId = docAttachmentId;
+            OpenToAll = openToAll;
+            IsBidPriceHidden = isBidPriceHidden;
+            OrganizationId = organizationId;
+            StatusId = statusId;
+        }
+
+        public Auction(
+            int id,
+            string auctionName,
+            string about,
+            string docNoYearly,
+            DateOnly docDate,
+            bool isForwardAuction,
+            DateTimeOffset auctionStartTime,
+            DateTimeOffset auctionEndTime,
+            Guid? docAttachmentId,
+            bool openToAll,
+            bool isBidPriceHidden,
+            int organizationId,
+            short statusId)
+            : this(
+                auctionName,
+                about,
+                docNoYearly,
+                docDate,
+                isForwardAuction,
+                auctionStartTime,
+                auctionEndTime,
+                docAttachmentId,
+                openToAll,
+                isBidPriceHidden,
+                organizationId,
+                statusId)
+        {
+            Id = id;
+        }
+
+        public Auction() { }
+
+        public void Update(
+            string auctionName,
+            string about,
+            string docNoYearly,
+            DateOnly docDate,
+            bool isForwardAuction,
+            DateTimeOffset auctionStartTime,
+            DateTimeOffset auctionEndTime,
+            Guid? docAttachmentId,
+            bool openToAll,
+            bool isBidPriceHidden,
+            int organizationId,
+            short statusId)
+        {
+            AuctionName = auctionName;
+            About = about;
+            DocNoYearly = docNoYearly;
+            DocDate = docDate;
+            IsForwardAuction = isForwardAuction;
+            AuctionStartTime = auctionStartTime;
+            AuctionEndTime = auctionEndTime;
+            DocAttachmentId = docAttachmentId;
+            OpenToAll = openToAll;
+            IsBidPriceHidden = isBidPriceHidden;
+            OrganizationId = organizationId;
+            StatusId = statusId;
+            LastModifiedDateTime = DateTimeOffset.UtcNow;
+        }
+
     }
 }

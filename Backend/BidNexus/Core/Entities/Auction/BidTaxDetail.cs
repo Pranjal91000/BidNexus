@@ -1,6 +1,7 @@
 using Core.Entities.GlobalData;
 using Core.Entities.Master;
 using Core.Entities.Shared;
+using System.Text.Json.Serialization;
 
 namespace Core.Entities.Auction
 {
@@ -24,7 +25,7 @@ namespace Core.Entities.Auction
 
         public decimal TaxValue { get; set; }
         public decimal TaxAmount { get; set; }
-
+        [JsonIgnore]
         public BidDetail BidDetail { get; set; } = null!;
     }
 }
