@@ -1,4 +1,5 @@
 using Core.Abstraction.Services;
+using Core.Abstraction.TenantRelated;
 using Core.Services;
 using Microsoft.Extensions.DependencyInjection;
 
