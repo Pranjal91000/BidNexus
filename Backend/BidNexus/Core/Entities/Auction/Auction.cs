@@ -6,7 +6,10 @@ namespace Core.Entities.Auction
 {
     public class Auction: TransactionBaseEntity
     {
+        public string About { get; set; } = string.Empty;
+        public string AuctionName { get; set; }
         public bool IsForwardAuction { get; set; }
+        public DateTimeOffset? AuctionIntentSubmissionDate { get; set; }
         public DateTimeOffset AuctionStartTime { get; set; }
         public DateTimeOffset AuctionEndTime { get; set; }
         public Guid? DocAttachmentId { get; set; }
@@ -110,6 +113,5 @@ namespace Core.Entities.Auction
             StatusId = statusId;
             LastModifiedDateTime = DateTimeOffset.UtcNow;
         }
-
     }
 }
