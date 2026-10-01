@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using API.Abstraction.AuctionRel;
 using API.Models.AuctionRel;
 using Core.Abstraction.AuctionRelated;
@@ -11,6 +12,9 @@ public sealed class AuctionEngine(
     private readonly IAuctionRepository _auctionRepository = auctionRepository;
     private readonly IBidService _bidService = bidService;
 
+    // One serializer per auction. This guarantees that bids for different
+    // auctions can execute concurrently while bids for the same auction
+    // execute in arrival order.
     private readonly ConcurrentDictionary<int, SemaphoreSlim> _auctionLocks = new();
 
     public async Task<BidResponseDataModel> ProcessBidAsync(
@@ -29,7 +33,6 @@ public sealed class AuctionEngine(
         try
         {
             var auction = await _auctionRepository.GetById(request.AuctionId);
-
             var now = DateTimeOffset.UtcNow;
 
             if (now < auction.AuctionStartTime)
@@ -52,12 +55,6 @@ public sealed class AuctionEngine(
         finally
         {
             auctionLock.Release();
-
-            if (auctionLock.CurrentCount == 1)
-                _auctionLocks.TryRemove(
-                    new KeyValuePair<int, SemaphoreSlim>(request.AuctionId, auctionLock));
-
-            auctionLock.Dispose();
         }
     }
 }
