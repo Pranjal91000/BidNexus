@@ -10,9 +10,11 @@ namespace API.Services.AuctionRel;
 
 public class BidService(
     IBidRepositoy bidRepository,
+    IAuctionRepository auctionRepository,
     IJwtHelperService jwtHelperService) : IBidService
 {
     private readonly IBidRepositoy _bidRepository = bidRepository;
+    private readonly IAuctionRepository _auctionRepository = auctionRepository;
     private readonly IJwtHelperService _jwtHelper = jwtHelperService;
 
     public async Task<BidResponseDataModel> ProcessBidAsync(
@@ -220,11 +222,7 @@ public class BidService(
         int auctionId,
         CancellationToken cancellationToken)
     {
-        // AuctionEngine already verifies lifecycle state. This second read keeps
-        // bid calculation tied to the same auction direction used by the repository.
-        var auctionRepository = await Task.FromResult<Core.Abstraction.AuctionRelated.IAuctionRepository?>(null);
-        throw new InvalidOperationException(
-            "Auction data must be supplied by the auction engine before bid processing.");
+        return await _auctionRepository.GetById(auctionId);
     }
 
     private static ResolvedTax ResolveTax(
