@@ -2,6 +2,7 @@ using API.Abstraction.AuctionRel;
 using API.Models.AuctionRel;
 using API.ModelValidators.AuctionRel;
 using API.Services.AuctionRel;
+using Core.Abstraction.Services;
 using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
@@ -14,6 +15,7 @@ public static class AuctionApiServiceCollectionExtensions
     {
         services.AddScoped<IAuctionService, AuctionService>();
         services.AddScoped<IBidService, BidService>();
+        services.AddScoped<IAuctionRealtimeService, AuctionRealtimeService>();
         services.AddSingleton<IAuctionEngine, AuctionEngine>();
         services.Configure<AuctionEngineOptions>(
             configuration.GetSection(AuctionEngineOptions.SectionName));
