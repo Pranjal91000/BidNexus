@@ -10,9 +10,9 @@ namespace API.Controllers.AuctionRel;
 [ApiController]
 [Authorize]
 [Route("api/bids")]
-public class BidController(IBidService bidService, IValidator<BidCreateRequest> validator) : ControllerBase
+public class BidController(IAuctionEngine auctionEngine, IValidator<BidCreateRequest> validator) : ControllerBase
 {
-    private readonly IBidService _bidService = bidService;
+    private readonly IAuctionEngine _auctionEngine = auctionEngine;
     private readonly IValidator<BidCreateRequest> _validator = validator;
 
     [HttpPost]
@@ -26,8 +26,19 @@ public class BidController(IBidService bidService, IValidator<BidCreateRequest> 
             return BadRequest(validation.ToDictionary());
         }
 
-        var result = await _bidService.ProcessBidAsync(request, cancellationToken);
-        return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
+        try
+        {
+            var result = await _auctionEngine.ProcessBidAsync(request, cancellationToken);
+            return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new { message = ex.Message });
+        }
     }
 
     [HttpGet("{id:long}")]
