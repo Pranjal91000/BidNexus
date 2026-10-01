@@ -743,8 +743,9 @@ namespace Infrastructure.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
-                    b.Property<string>("Password")
+                    b.Property<string>("PasswordHash")
                         .IsRequired()
+                        .HasColumnName("Password")
                         .HasColumnType("text");
 
                     b.Property<int>("ReferenceId")
