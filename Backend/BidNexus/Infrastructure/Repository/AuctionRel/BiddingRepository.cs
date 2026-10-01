@@ -10,33 +10,145 @@ namespace Infrastructure.Repository.AuctionRel
     {
         private readonly AppDbContext _appDbContext = appDbContext;
 
-        public async Task<BidResponseDataModel> ProcessBidAsync(Bid bid)
+        public async Task<BidProcessingContext> GetBidProcessingContextAsync(
+            int auctionId,
+            int vendorId,
+            IReadOnlyCollection<int> requirementIds,
+            IReadOnlyCollection<int> taxIds,
+            IReadOnlyCollection<short> taxNatureIds,
+            IReadOnlyCollection<short> chargeTypeIds,
+            int tenantId,
+            bool isForwardAuction,
+            CancellationToken cancellationToken = default)
         {
-            var prevBid = await _appDbContext.Bids
-                .Where(b => b.AuctionId == bid.AuctionId && b.VendorId == bid.VendorId && b.IsCurrent)
-                .FirstOrDefaultAsync();
+            var vendorExistsForTenant = await _appDbContext.Vendors
+                .AsNoTracking()
+                .AnyAsync(
+                    v => v.Id == vendorId && v.TenantId == tenantId,
+                    cancellationToken);
 
-            if (prevBid != null)
+            var vendorIntent = await _appDbContext.VendorIntents
+                .AsNoTracking()
+                .FirstOrDefaultAsync(
+                    x => x.AuctionId == auctionId &&
+                         x.VendorId == vendorId &&
+                         x.TenantId == tenantId,
+                    cancellationToken);
+
+            var requirements = await _appDbContext.AuctionRequirements
+                .AsNoTracking()
+                .Where(x =>
+                    x.AuctionId == auctionId &&
+                    requirementIds.Contains(x.Id))
+                .ToListAsync(cancellationToken);
+
+            var taxMasters = taxIds.Count == 0
+                ? []
+                : await _appDbContext.TaxMasters
+                    .AsNoTracking()
+                    .Where(x => taxIds.Contains(x.Id))
+                    .ToListAsync(cancellationToken);
+
+            var taxNatures = taxNatureIds.Count == 0
+                ? []
+                : await _appDbContext.TaxNatures
+                    .AsNoTracking()
+                    .Where(x => taxNatureIds.Contains(x.Id))
+                    .ToListAsync(cancellationToken);
+
+            var chargeTypes = chargeTypeIds.Count == 0
+                ? []
+                : await _appDbContext.ChargeTypes
+                    .AsNoTracking()
+                    .Where(x => chargeTypeIds.Contains(x.Id))
+                    .ToListAsync(cancellationToken);
+
+            var currentBids = _appDbContext.Bids
+                .AsNoTracking()
+                .Where(x =>
+                    x.AuctionId == auctionId &&
+                    x.IsCurrent &&
+                    x.Auction.Organization.TenantId == tenantId);
+
+            var currentBestNetAmount = isForwardAuction
+                ? await currentBids
+                    .OrderByDescending(x => x.NetAmount)
+                    .Select(x => (decimal?)x.NetAmount)
+                    .FirstOrDefaultAsync(cancellationToken)
+                : await currentBids
+                    .OrderBy(x => x.NetAmount)
+                    .Select(x => (decimal?)x.NetAmount)
+                    .FirstOrDefaultAsync(cancellationToken);
+
+            return new BidProcessingContext
             {
-                prevBid.IsCurrent = false;
-                bid.MainBidId = prevBid.MainBidId;
-                bid.BidRevisionNo = (short)(prevBid.BidRevisionNo + 1);
-            }
-
-            await _appDbContext.Bids.AddAsync(bid);
-            var success = await _appDbContext.SaveChangesAsync() > 0;
-
-            if (!success) throw new InvalidOperationException("Failed to process Bid.");
-
-            return new BidResponseDataModel
-            {
-                Id = bid.Id,
-                MainBidId = bid.MainBidId,
-                AuctionId = bid.AuctionId,
-                BidRevisionNo = bid.BidRevisionNo
+                IsForwardAuction = isForwardAuction,
+                VendorExistsForTenant = vendorExistsForTenant,
+                VendorIntent = vendorIntent,
+                Requirements = requirements,
+                TaxMasters = taxMasters,
+                TaxNatures = taxNatures,
+                ChargeTypes = chargeTypes,
+                CurrentBestNetAmount = currentBestNetAmount
             };
         }
 
+        public async Task<BidResponseDataModel> ProcessBidAsync(
+            Bid bid,
+            CancellationToken cancellationToken = default)
+        {
+            await using var transaction =
+                await _appDbContext.Database.BeginTransactionAsync(cancellationToken);
+
+            try
+            {
+                var previousBid = await _appDbContext.Bids
+                    .Where(b =>
+                        b.AuctionId == bid.AuctionId &&
+                        b.VendorId == bid.VendorId &&
+                        b.IsCurrent &&
+                        b.Auction.Organization.TenantId ==
+                            b.Auction.Organization.TenantId)
+                    .OrderByDescending(b => b.BidRevisionNo)
+                    .FirstOrDefaultAsync(cancellationToken);
+
+                if (previousBid != null)
+                {
+                    previousBid.IsCurrent = false;
+                    bid.MainBidId = previousBid.MainBidId;
+                    bid.BidRevisionNo = checked((short)(previousBid.BidRevisionNo + 1));
+                }
+                else
+                {
+                    bid.BidRevisionNo = 1;
+                    bid.MainBidId = 0;
+                }
+
+                await _appDbContext.Bids.AddAsync(bid, cancellationToken);
+                await _appDbContext.SaveChangesAsync(cancellationToken);
+
+                if (previousBid == null)
+                {
+                    bid.InitializeAsMainBid();
+                    await _appDbContext.SaveChangesAsync(cancellationToken);
+                }
+
+                await transaction.CommitAsync(cancellationToken);
+
+                return new BidResponseDataModel
+                {
+                    Id = bid.Id,
+                    MainBidId = bid.MainBidId,
+                    AuctionId = bid.AuctionId,
+                    BidRevisionNo = bid.BidRevisionNo
+                };
+            }
+            catch
+            {
+                await transaction.RollbackAsync(CancellationToken.None);
+                throw;
+            }
+        }
         public async Task<List<BidDataModel>> GetAuctionBidsAsync(int auctionId)
         {
             var data = await _appDbContext.Bids
