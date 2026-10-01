@@ -9,10 +9,12 @@ public class BidTaxDetailSaveRequestValidator : AbstractValidator<BidTaxDetailSa
     {
         RuleFor(x => x.TaxNatureId)
             .GreaterThan((short)0)
+            .When(x => !x.TaxId.HasValue)
             .WithMessage("TaxNatureId must be greater than 0.");
 
         RuleFor(x => x.ChargeTypeId)
             .GreaterThan((short)0)
+            .When(x => !x.TaxId.HasValue)
             .WithMessage("ChargeTypeId must be greater than 0.");
 
         RuleFor(x => x.TaxValue)
