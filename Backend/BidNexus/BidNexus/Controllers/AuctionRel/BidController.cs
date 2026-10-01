@@ -9,9 +9,12 @@ namespace API.Controllers.AuctionRel;
 [ApiController]
 [Authorize(Roles = "Vendor")]
 [Route("api/bids")]
-public class BidController(IAuctionEngine auctionEngine) : ControllerBase
+public class BidController(
+    IAuctionEngine auctionEngine,
+    IBidService bidService) : ControllerBase
 {
     private readonly IAuctionEngine _auctionEngine = auctionEngine;
+    private readonly IBidService _bidService = bidService;
     
     [HttpPost]
     [ProducesResponseType(typeof(BidResponseDataModel), StatusCodes.Status201Created)]
