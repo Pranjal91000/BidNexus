@@ -21,6 +21,12 @@ namespace Infrastructure.Repository.AuctionRel
             bool isForwardAuction,
             CancellationToken cancellationToken = default)
         {
+            var auctionForTenant = await _appDbContext.Auctions
+                .AsNoTracking()
+                .Where(a => a.Id == auctionId && a.Organization.TenantId == tenantId)
+                .Select(a => new { a.Id, a.OpenToAll })
+                .FirstOrDefaultAsync(cancellationToken);
+
             var vendorExistsForTenant = await _appDbContext.Vendors
                 .AsNoTracking()
                 .AnyAsync(
@@ -83,6 +89,8 @@ namespace Infrastructure.Repository.AuctionRel
             return new BidProcessingContext
             {
                 IsForwardAuction = isForwardAuction,
+                AuctionExistsForTenant = auctionForTenant != null,
+                OpenToAll = auctionForTenant?.OpenToAll ?? false,
                 VendorExistsForTenant = vendorExistsForTenant,
                 VendorIntent = vendorIntent,
                 Requirements = requirements,
