@@ -4,7 +4,6 @@ using System.Security.Claims;
 
 namespace Core.Services
 {
-
     public class JwtHelperService : IJwtHelperService
     {
         private readonly IHttpContextAccessor? _httpContextAccessor;
@@ -15,44 +14,27 @@ namespace Core.Services
         }
 
         public int GetUserId()
-        {
-            if (_httpContextAccessor?.HttpContext?.User is null)
-                return 0;
-
-            var claims = _httpContextAccessor.HttpContext.User.Claims;
-            var userIdClaim = claims.FirstOrDefault(c => c.Type == "UserId")?.Value;
-            _ = int.TryParse(userIdClaim, out int result);
-            return result;
-        }
-
-        public string GetEmail()
-        {
-            if (_httpContextAccessor?.HttpContext?.User is null)
-                return string.Empty;
-
-            var claims = _httpContextAccessor.HttpContext.User.Claims;
-            return claims.FirstOrDefault(c => c.Type == ClaimTypes.Name)?.Value ?? string.Empty;
-        }
-
-        public string GetSessionId()
-        {
-            if (_httpContextAccessor?.HttpContext?.User is null)
-                return string.Empty;
-
-            var claims = _httpContextAccessor.HttpContext.User.Claims;
-            return claims.FirstOrDefault(c => c.Type == "sessionId")?.Value ?? string.Empty;
-        }
+            => GetIntClaim("userId");
 
         public int GetTenantId()
-        {
-            if (_httpContextAccessor?.HttpContext?.User is null)
-                return 0;
+            => GetIntClaim("tenantId");
 
-            var claims = _httpContextAccessor.HttpContext.User.Claims;
-            var userIdClaim = claims.FirstOrDefault(c => c.Type == "TenantId")?.Value;
-            _ = int.TryParse(userIdClaim, out int result);
-            return result;
+        public string GetEmail()
+            => _httpContextAccessor?.HttpContext?.User?.FindFirstValue(ClaimTypes.Email)
+               ?? string.Empty;
+
+        public string GetSessionId()
+            => _httpContextAccessor?.HttpContext?.User?.FindFirstValue("sessionId")
+               ?? string.Empty;
+
+        public string GetRole()
+            => _httpContextAccessor?.HttpContext?.User?.FindFirstValue(ClaimTypes.Role)
+               ?? string.Empty;
+
+        private int GetIntClaim(string claimType)
+        {
+            var value = _httpContextAccessor?.HttpContext?.User?.FindFirstValue(claimType);
+            return int.TryParse(value, out var result) ? result : 0;
         }
     }
-
 }
