@@ -10,6 +10,8 @@ namespace Core.Models.AuctionRelated
         public long? MainBidId { get; set; }
         public int AuctionId { get; set; }
         public short BidRevisionNo { get; set; }
+        public int VendorId { get; set; }
+        public decimal NetAmount { get; set; }
     }
 
     public class BidDataModel
