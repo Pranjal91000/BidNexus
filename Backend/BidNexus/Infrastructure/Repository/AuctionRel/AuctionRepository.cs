@@ -222,13 +222,32 @@ namespace Infrastructure.Repository.AuctionRel
 
             if (string.Equals(role, "Vendor", StringComparison.OrdinalIgnoreCase))
             {
-                return await _dbContext.VendorIntents.AnyAsync(
-                    x => x.AuctionId == auctionId &&
-                         x.VendorId == userId &&
-                         x.TenantId == tenantId &&
-                         x.IsInterested &&
-                         x.IsQualified,
-                    cancellationToken);
+                var auction = await _dbContext.Auctions
+                    .AsNoTracking()
+                    .Where(a => a.Id == auctionId && a.TenantId == tenantId)
+                    .Select(a => a.OpenToAll)
+                    .FirstOrDefaultAsync(cancellationToken);
+
+                var vendorExists = await _dbContext.Vendors
+                    .AsNoTracking()
+                    .AnyAsync(
+                        v => v.Id == userId && v.TenantId == tenantId,
+                        cancellationToken);
+
+                if (!vendorExists)
+                    return false;
+
+                var intent = await _dbContext.VendorIntents
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(
+                        x => x.AuctionId == auctionId &&
+                             x.VendorId == userId &&
+                             x.TenantId == tenantId,
+                        cancellationToken);
+
+                return intent == null
+                    ? auction
+                    : intent.IsInterested && intent.IsQualified;
             }
 
             return false;
