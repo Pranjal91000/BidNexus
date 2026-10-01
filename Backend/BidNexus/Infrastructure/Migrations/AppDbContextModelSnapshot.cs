@@ -194,7 +194,7 @@ namespace Infrastructure.Migrations
                     b.Property<bool>("IsCurrent")
                         .HasColumnType("boolean");
 
-                    b.Property<long>("MainBidId")
+                    b.Property<long?>("MainBidId")
                         .HasColumnType("bigint");
 
                     b.Property<decimal>("NetAmount")
@@ -950,7 +950,6 @@ namespace Infrastructure.Migrations
                         .WithMany()
                         .HasForeignKey("MainBidId")
                         .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired()
                         .HasConstraintName("FK_Bid_MainBidId");
 
                     b.HasOne("Core.Entities.TenantRelated.Vendor", "Vendor")
