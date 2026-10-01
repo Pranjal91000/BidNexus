@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace API.Controllers.AuctionRel;
 
 [ApiController]
-[Authorize]
+[Authorize(Roles = "Vendor")]
 [Route("api/bids")]
 public class BidController(IAuctionEngine auctionEngine) : ControllerBase
 {
@@ -28,6 +28,10 @@ public class BidController(IAuctionEngine auctionEngine) : ControllerBase
             return BadRequest(ex.Errors.ToDictionary(
                 error => error.PropertyName,
                 error => new[] { error.ErrorMessage }));
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
         }
         catch (ArgumentException ex)
         {
