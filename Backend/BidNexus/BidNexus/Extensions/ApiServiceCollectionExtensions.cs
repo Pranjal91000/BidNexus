@@ -9,7 +9,7 @@ namespace API.Extensions
 {
     public static class ApiServiceCollectionExtensions
     {
-        public static IServiceCollection AddApiServices(this IServiceCollection services)
+        public static IServiceCollection AddApiServices(this IServiceCollection services, IConfiguration configuration)
         {
             services.AddScoped<IAuthService, AuthService>();
             services.AddScoped<IRegistrationService, RegistrationService>();
@@ -19,7 +19,7 @@ namespace API.Extensions
             services.AddMasterApiServices();
 
             // Auction Services
-            services.AddAuctionApiServices();
+            services.AddAuctionApiServices(configuration);
 
             return services;
         }
