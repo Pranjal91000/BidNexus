@@ -17,7 +17,9 @@ namespace Infrastructure.EntityConfigurations.TenantRelated
             builder.Property(x => x.ContactNumber).IsRequired();
             builder.Property(x => x.EmailAddress).IsRequired();
             builder.Property(x => x.UserName).IsRequired();
-            builder.Property(x => x.Password).IsRequired();
+            builder.Property(x => x.PasswordHash)
+                .HasColumnName("Password")
+                .IsRequired();
             builder.Property(x => x.IsVendor).IsRequired();
 
             builder.HasIndex(x => x.UserName).IsUnique();
