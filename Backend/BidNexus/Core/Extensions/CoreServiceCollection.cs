@@ -14,6 +14,7 @@ namespace Core.Extensions
             services.AddHttpContextAccessor();
             services.AddScoped<IJwtHelperService, JwtHelperService>();
             services.AddScoped<IAuthenticationCoreService, AuthenticationCoreService>();
+            services.AddScoped<IAuctionStatementService, AuctionStatementService>();
             services.AddScoped<IPasswordHasher<Tenant>, PasswordHasher<Tenant>>();
             return services;
         }
