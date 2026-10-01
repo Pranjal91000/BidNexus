@@ -8,15 +8,11 @@ namespace API.Services.AuctionRel;
 
 public sealed class AuctionLifecycleWorker(
     IServiceScopeFactory scopeFactory,
-    IAuctionStatementService statementService,
-    IAuctionRealtimeService realtimeService,
     IOptions<AuctionEngineOptions> options,
     ILogger<AuctionLifecycleWorker> logger) : BackgroundService
 {
     private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
     private readonly AuctionEngineOptions _options = options.Value;
-    private readonly IAuctionStatementService _statementService = statementService;
-    private readonly IAuctionRealtimeService _realtimeService = realtimeService;
     private readonly ILogger<AuctionLifecycleWorker> _logger = logger;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -53,6 +49,8 @@ public sealed class AuctionLifecycleWorker(
     {
         using var scope = _scopeFactory.CreateScope();
         var repository = scope.ServiceProvider.GetRequiredService<IAuctionRepository>();
+        var statementService = scope.ServiceProvider.GetRequiredService<IAuctionStatementService>();
+        var realtimeService = scope.ServiceProvider.GetRequiredService<IAuctionRealtimeService>();
         var now = DateTimeOffset.UtcNow;
 
         var auctionsToStart = await repository.GetAuctionsForLifecycleAsync(
@@ -78,12 +76,12 @@ public sealed class AuctionLifecycleWorker(
                     auction.Id,
                     _options.ClosedStatusName);
 
-                await _statementService.GenerateAsync(
+                await statementService.GenerateAsync(
                     auction.Id,
                     auction.TenantId,
                     cancellationToken);
 
-                await _realtimeService.PublishAuctionClosedAsync(
+                await realtimeService.PublishAuctionClosedAsync(
                     auction.Id,
                     cancellationToken);
             }
