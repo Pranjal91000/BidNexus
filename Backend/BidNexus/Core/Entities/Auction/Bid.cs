@@ -19,6 +19,13 @@ namespace Core.Entities.Auction
         public Auction Auction { get; set; } = null!;
         public Vendor Vendor { get; set; } = null!;
         public ICollection<BidDetail> BidDetails { get; set; } = null!;
-        
+
+        public void InitializeAsMainBid()
+        {
+            if (Id <= 0)
+                throw new InvalidOperationException("A bid must be persisted before its MainBidId can be initialized.");
+
+            MainBidId = Id;
+        }
     }
 }
