@@ -205,6 +205,34 @@ namespace Infrastructure.Repository.AuctionRel
             await _dbContext.SaveChangesAsync();
         }
 
+        public async Task<bool> CanAccessAuctionAsync(
+            int auctionId,
+            int userId,
+            int tenantId,
+            string role,
+            CancellationToken cancellationToken = default)
+        {
+            if (string.Equals(role, "Organization", StringComparison.OrdinalIgnoreCase))
+            {
+                return await _dbContext.Auctions.AnyAsync(
+                    a => a.Id == auctionId && a.TenantId == tenantId,
+                    cancellationToken);
+            }
+
+            if (string.Equals(role, "Vendor", StringComparison.OrdinalIgnoreCase))
+            {
+                return await _dbContext.VendorIntents.AnyAsync(
+                    x => x.AuctionId == auctionId &&
+                         x.VendorId == userId &&
+                         x.TenantId == tenantId &&
+                         x.IsInterested &&
+                         x.IsQualified,
+                    cancellationToken);
+            }
+
+            return false;
+        }
+
         public async Task<bool> DeleteAsync(int Id)
         {
             var auction = await _dbContext.Auctions
