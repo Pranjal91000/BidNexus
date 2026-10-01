@@ -8,6 +8,7 @@ namespace Core.Abstraction.Services
         int GetUserId();
 
         string GetSessionId();
+        string GetRole();
         public int GetTenantId();
     }
 
