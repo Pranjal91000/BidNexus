@@ -10,7 +10,7 @@ builder.Services.AddControllers();
 // Clean Architecture Layer Services
 builder.Services.AddCoreServices();
 builder.Services.AddInfrastructureServices(builder.Configuration);
-builder.Services.AddApiServices();
+builder.Services.AddApiServices(builder.Configuration);
 
 // Cross-cutting concerns
 builder.Services.AddJwtAuthentication(builder.Configuration);
