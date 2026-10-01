@@ -3,6 +3,7 @@ using API.Models.AuctionRel;
 using Core.Models.AuctionRelated;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Core.Abstraction.Services;
 
 namespace API.Controllers.AuctionRel;
 
@@ -11,10 +12,12 @@ namespace API.Controllers.AuctionRel;
 [Route("api/bids")]
 public class BidController(
     IAuctionEngine auctionEngine,
-    IBidService bidService) : ControllerBase
+    IBidService bidService,
+    IAuctionRealtimeService realtimeService) : ControllerBase
 {
     private readonly IAuctionEngine _auctionEngine = auctionEngine;
     private readonly IBidService _bidService = bidService;
+    private readonly IAuctionRealtimeService _realtimeService = realtimeService;
     
     [HttpPost]
     [ProducesResponseType(typeof(BidResponseDataModel), StatusCodes.Status201Created)]
@@ -24,6 +27,14 @@ public class BidController(
         try
         {
             var result = await _auctionEngine.ProcessBidAsync(request, cancellationToken);
+
+            await _realtimeService.PublishBidAcceptedAsync(
+                result.AuctionId,
+                result.Id,
+                result.VendorId,
+                result.NetAmount,
+                cancellationToken);
+
             return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
         }
         catch (FluentValidation.ValidationException ex)
