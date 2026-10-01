@@ -1,11 +1,13 @@
 using API.Extensions;
 using Core.Extensions;
 using Infrastructure.Extensions;
+using Core.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container
 builder.Services.AddControllers();
+builder.Services.AddSignalR();
 
 // Clean Architecture Layer Services
 builder.Services.AddCoreServices();
@@ -31,5 +33,6 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHub<AuctionHub>(AuctionHub.Route);
 
 app.Run();
