@@ -177,8 +177,9 @@ namespace Infrastructure.Repository.AuctionRel
                     ShouldStart = a.Status.Name == normalizedScheduled &&
                                   a.AuctionStartTime <= now &&
                                   a.AuctionEndTime > now,
-                    ShouldClose = a.Status.Name == normalizedActive &&
-                                  a.AuctionEndTime <= now
+                    ShouldClose = (a.Status.Name == normalizedScheduled ||
+                                a.Status.Name == normalizedActive) &&
+                               a.AuctionEndTime <= now
                 })
                 .ToListAsync();
         }
