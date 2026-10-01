@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace Infrastructure.Migrations
 {
+    [Migration("20261001073000_MakeBidMainBidIdNullable")]
     public partial class MakeBidMainBidIdNullable : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
