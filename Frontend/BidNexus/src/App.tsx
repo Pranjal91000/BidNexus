@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { HubConnectionBuilder, LogLevel } from '@microsoft/signalr'
 import './App.css'
 
 type Auction = {
@@ -73,6 +74,7 @@ function App() {
   const [loading, setLoading] = useState(false)
   const [notice, setNotice] = useState('')
   const [search, setSearch] = useState('')
+  const [realtime, setRealtime] = useState(false)
 
   useEffect(() => {
     if (!token) return
@@ -130,6 +132,36 @@ function App() {
     } catch (e) { setNotice(e instanceof Error ? e.message : 'Statement unavailable') }
   }
 
+  useEffect(() => {
+    if (!selected || !token) return
+
+    const connection = new HubConnectionBuilder()
+      .withUrl(`${API}/hubs/auction`, { accessTokenFactory: () => token })
+      .withAutomaticReconnect()
+      .configureLogging(LogLevel.Warning)
+      .build()
+
+    connection.on('BidAccepted', (event: Bid) => {
+      setBids(current => [event, ...current.filter(b => b.id !== event.id)])
+      setNotice('A new bid was accepted.')
+    })
+    connection.on('AuctionClosed', () => {
+      setSelected(current => current ? { ...current, statusName: 'Closed' } : current)
+      setNotice('Auction closed. Final statement is now available to the organization.')
+    })
+
+    connection.start()
+      .then(() => connection.invoke('JoinAuction', selected.id))
+      .then(() => setRealtime(true))
+      .catch(() => setRealtime(false))
+
+    return () => {
+      setRealtime(false)
+      connection.invoke('LeaveAuction', selected.id).catch(() => undefined)
+      connection.stop()
+    }
+  }, [selected?.id, token])
+
   const filtered = useMemo(() => auctions.filter(a =>
     `${a.docNoYearly} ${a.organization?.name || ''}`.toLowerCase().includes(search.toLowerCase())
   ), [auctions, search])
@@ -169,7 +201,7 @@ function App() {
             <p className="eyebrow">PROCUREMENT CONTROL</p>
             <h1>Live auction desk</h1>
           </div>
-          <div className="header-actions"><span className="live-dot" />Realtime enabled <button onClick={loadAuctions}>↻</button></div>
+          <div className="header-actions"><span className="live-dot" />{realtime ? "Realtime connected" : "Realtime connecting"} <button onClick={loadAuctions}>↻</button></div>
         </header>
 
         {notice && <div className="notice">{notice}<button onClick={() => setNotice('')}>×</button></div>}
