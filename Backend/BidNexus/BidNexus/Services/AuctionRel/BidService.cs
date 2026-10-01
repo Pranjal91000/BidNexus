@@ -294,9 +294,9 @@ public class BidService(
 
         var amount = code switch
         {
-            "PERCENTAGE" => baseAmount * taxValue / 100m,
-            "PER_UNIT" => quantity * taxValue,
-            "WHOLE" => taxValue,
+            "PERCENTAGE" or "PERCENT" or "PCT" => baseAmount * taxValue / 100m,
+            "PER_UNIT" or "PERUNIT" or "UNIT" => quantity * taxValue,
+            "WHOLE" or "FIXED" or "FLAT" => taxValue,
             _ => throw new InvalidOperationException(
                 $"Unsupported charge type '{chargeTypeName}'.")
         };
@@ -307,8 +307,8 @@ public class BidService(
     private static bool IsDeductiveTax(string code, string name)
         => NormalizeCode(code, name) switch
         {
-            "DEDUCTIVE" => true,
-            "ADDITIVE" => false,
+            "DEDUCTIVE" or "DEDUCT" => true,
+            "ADDITIVE" or "ADD" => false,
             _ => throw new InvalidOperationException($"Unsupported tax nature '{name}'.")
         };
 
