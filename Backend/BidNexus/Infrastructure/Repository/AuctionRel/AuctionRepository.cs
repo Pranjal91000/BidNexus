@@ -119,6 +119,8 @@ namespace Infrastructure.Repository.AuctionRel
                 IsBidPriceHidden = auction.IsBidPriceHidden,
                 OrganizationId = auction.OrganizationId,
                 Organization = auction.Organization,
+                StatusId = auction.StatusId,
+                StatusName = auction.Status?.Name ?? string.Empty,
                 AuctionRequirements = auction.AuctionRequirements?.Select(r => new AuctionRequirementDataModel
                 {
                     Id = r.Id,
@@ -146,6 +148,59 @@ namespace Infrastructure.Repository.AuctionRel
                 CreatedDateTime = auction.CreatedDateTime,
                 LastModifiedDateTime = auction.LastModifiedDateTime
             };
+        }
+
+        public async Task<List<AuctionLifecycleDataModel>> GetAuctionsForLifecycleAsync(
+            DateTimeOffset now,
+            string scheduledStatusName,
+            string activeStatusName,
+            string closedStatusName)
+        {
+            var normalizedScheduled = scheduledStatusName.Trim();
+            var normalizedActive = activeStatusName.Trim();
+            var normalizedClosed = closedStatusName.Trim();
+
+            return await _dbContext.Auctions
+                .AsNoTracking()
+                .Include(a => a.Status)
+                .Where(a =>
+                    (a.Status.Name == normalizedScheduled && a.AuctionStartTime <= now) ||
+                    (a.Status.Name == normalizedActive && a.AuctionEndTime <= now))
+                .Select(a => new AuctionLifecycleDataModel
+                {
+                    Id = a.Id,
+                    StatusId = a.StatusId,
+                    StatusName = a.Status.Name,
+                    AuctionStartTime = a.AuctionStartTime,
+                    AuctionEndTime = a.AuctionEndTime,
+                    ShouldStart = a.Status.Name == normalizedScheduled &&
+                                  a.AuctionStartTime <= now &&
+                                  a.AuctionEndTime > now,
+                    ShouldClose = a.Status.Name == normalizedActive &&
+                                  a.AuctionEndTime <= now
+                })
+                .ToListAsync();
+        }
+
+        public async Task UpdateStatusAsync(int auctionId, string statusName)
+        {
+            var auction = await _dbContext.Auctions
+                .FirstOrDefaultAsync(a => a.Id == auctionId);
+
+            if (auction == null)
+                return;
+
+            var status = await _dbContext.Statuses
+                .FirstOrDefaultAsync(s => s.Name == statusName.Trim() && !s.Inactive);
+
+            if (status == null)
+                throw new InvalidOperationException(
+                    $"Auction status '{statusName}' was not found or is inactive.");
+
+            auction.StatusId = status.Id;
+            auction.LastModifiedDateTime = DateTimeOffset.UtcNow;
+
+            await _dbContext.SaveChangesAsync();
         }
 
         public async Task<bool> DeleteAsync(int Id)
