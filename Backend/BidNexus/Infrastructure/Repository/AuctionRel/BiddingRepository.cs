@@ -95,6 +95,7 @@ namespace Infrastructure.Repository.AuctionRel
 
         public async Task<BidResponseDataModel> ProcessBidAsync(
             Bid bid,
+            int tenantId,
             CancellationToken cancellationToken = default)
         {
             await using var transaction =
@@ -107,8 +108,7 @@ namespace Infrastructure.Repository.AuctionRel
                         b.AuctionId == bid.AuctionId &&
                         b.VendorId == bid.VendorId &&
                         b.IsCurrent &&
-                        b.Auction.Organization.TenantId ==
-                            b.Auction.Organization.TenantId)
+                        b.Auction.Organization.TenantId == tenantId)
                     .OrderByDescending(b => b.BidRevisionNo)
                     .FirstOrDefaultAsync(cancellationToken);
 
