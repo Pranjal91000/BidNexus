@@ -1,16 +1,42 @@
-﻿using Core.Abstraction.Auth;
+using Core.Abstraction.Auth;
 using Core.Models.Auth;
+using Core.Entities.TenantRelated;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.Repository.Auth
 {
-    public class AuthRepository(AppDbContext dbContext): IAuthRepository
+    public class AuthRepository(
+        AppDbContext dbContext,
+        IPasswordHasher<Tenant> passwordHasher) : IAuthRepository
     {
         private readonly AppDbContext _dbContext = dbContext;
-        public async Task<AuthDataModel?> ValidateLogin(string username, string password)
+        private readonly IPasswordHasher<Tenant> _passwordHasher = passwordHasher;
+
+        public async Task<AuthDataModel?> ValidateLogin(
+            string username,
+            string password)
         {
-            var user = await _dbContext.Tenants.FirstOrDefaultAsync(x => x.UserName == username);
-            if (user == null) return null;
+            var user = await _dbContext.Tenants
+                .FirstOrDefaultAsync(x => x.UserName == username);
+
+            if (user == null || user.IsBlocked)
+                return null;
+
+            var verification = _passwordHasher.VerifyHashedPassword(
+                user,
+                user.PasswordHash,
+                password);
+
+            if (verification == PasswordVerificationResult.Failed)
+                return null;
+
+            if (verification == PasswordVerificationResult.SuccessRehashNeeded)
+            {
+                user.PasswordHash = _passwordHasher.HashPassword(user, password);
+                await _dbContext.SaveChangesAsync();
+            }
+
             return new AuthDataModel
             {
                 Email = user.EmailAddress,
