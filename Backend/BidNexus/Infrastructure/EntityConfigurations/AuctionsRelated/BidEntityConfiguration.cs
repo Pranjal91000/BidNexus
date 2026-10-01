@@ -15,7 +15,7 @@ namespace Infrastructure.EntityConfigurations.AuctionsRelated
             builder.Property(x => x.Id).ValueGeneratedOnAdd();
 
             builder.Property(x => x.IsCurrent).IsRequired();
-            builder.Property(x => x.MainBidId).IsRequired();
+            builder.Property(x => x.MainBidId).IsRequired(false);
             builder.Property(x => x.AuctionId).IsRequired();
             builder.Property(x => x.VendorId).IsRequired();
             builder.Property(x => x.BasicAmount).HasPrecision(18, 2).IsRequired();
