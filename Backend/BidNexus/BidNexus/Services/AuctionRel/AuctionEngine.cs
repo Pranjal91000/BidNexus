@@ -2,19 +2,23 @@ using System.Collections.Concurrent;
 using API.Abstraction.AuctionRel;
 using API.Models.AuctionRel;
 using Core.Abstraction.AuctionRelated;
+using FluentValidation;
 
 namespace API.Services.AuctionRel;
 
 public sealed class AuctionEngine(
     IAuctionRepository auctionRepository,
-    IBidService bidService) : IAuctionEngine
+    IBidService bidService,
+    IValidator<BidCreateRequest> validator,
+    Microsoft.Extensions.Options.IOptions<AuctionEngineOptions> options) : IAuctionEngine
 {
     private readonly IAuctionRepository _auctionRepository = auctionRepository;
     private readonly IBidService _bidService = bidService;
+    private readonly IValidator<BidCreateRequest> _validator = validator;
+    private readonly AuctionEngineOptions _options = options.Value;
 
-    // One serializer per auction. This guarantees that bids for different
-    // auctions can execute concurrently while bids for the same auction
-    // execute in arrival order.
+    // One serializer per auction. Different auctions can process concurrently,
+    // while bids for the same auction are processed sequentially.
     private readonly ConcurrentDictionary<int, SemaphoreSlim> _auctionLocks = new();
 
     public async Task<BidResponseDataModel> ProcessBidAsync(
@@ -43,12 +47,17 @@ public sealed class AuctionEngine(
 
             if (!string.Equals(
                     auction.StatusName,
-                    "Active",
+                    _options.ActiveStatusName,
                     StringComparison.OrdinalIgnoreCase))
             {
                 throw new InvalidOperationException(
                     $"Auction is not active. Current status: {auction.StatusName ?? "Unknown"}.");
             }
+
+            var validation = await _validator.ValidateAsync(request, cancellationToken);
+
+            if (!validation.IsValid)
+                throw new ValidationException(validation.Errors);
 
             return await _bidService.ProcessBidAsync(request, cancellationToken);
         }
