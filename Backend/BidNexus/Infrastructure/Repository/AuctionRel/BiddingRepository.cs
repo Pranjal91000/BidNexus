@@ -158,6 +158,8 @@ namespace Infrastructure.Repository.AuctionRel
                     Id = bid.Id,
                     MainBidId = bid.MainBidId,
                     AuctionId = bid.AuctionId,
+                    VendorId = bid.VendorId,
+                    NetAmount = bid.NetAmount,
                     BidRevisionNo = bid.BidRevisionNo
                 };
             }
