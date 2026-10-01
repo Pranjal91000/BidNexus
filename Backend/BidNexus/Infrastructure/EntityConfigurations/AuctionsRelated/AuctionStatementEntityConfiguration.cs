@@ -1,4 +1,3 @@
-using Core.Abstraction.Services;
 using Infrastructure.EntityConfigurations.Shared;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -19,8 +18,8 @@ namespace Infrastructure.EntityConfigurations.AuctionsRelated
             builder.Property(x => x.IsWinner).IsRequired();
 
             builder.HasOne(x => x.Auction)
-                .WithOne(x => x.AuctionStatement)
-                .HasForeignKey<AuctionStatement>(x => x.AuctionId)
+                .WithMany(x => x.AuctionStatements)
+                .HasForeignKey(x => x.AuctionId)
                 .HasConstraintName("FK_AuctionStatement_AuctionId");
 
             builder.HasOne(x => x.Bid)
@@ -29,9 +28,13 @@ namespace Infrastructure.EntityConfigurations.AuctionsRelated
                 .HasConstraintName("FK_AuctionStatement_BidId");
 
             builder.HasOne(x => x.Vendor)
-                .WithOne()
-                .HasForeignKey<AuctionStatement>(x => x.VendorId)
+                .WithMany()
+                .HasForeignKey(x => x.VendorId)
                 .HasConstraintName("FK_AuctionStatement_VendorId");
+
+            builder.HasIndex(x => new { x.AuctionId, x.Rank }).IsUnique();
+            builder.HasIndex(x => new { x.AuctionId, x.VendorId }).IsUnique();
+            builder.HasIndex(x => new { x.AuctionId, x.BidId }).IsUnique();
         }
     }
 }
