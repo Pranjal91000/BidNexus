@@ -18,6 +18,7 @@ namespace Core.Abstraction.AuctionRelated
 
         Task<BidResponseDataModel> ProcessBidAsync(
             Bid bid,
+            int tenantId,
             CancellationToken cancellationToken = default);
 
         Task<List<BidDataModel>> GetAuctionBidsAsync(int auctionId);
