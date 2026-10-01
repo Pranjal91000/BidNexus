@@ -20,8 +20,21 @@ namespace Core.Models.AuctionRelated
         public int OrganizationId { get; set; }
         public Organization Organization { get; set; } = null!;
         public List<AuctionRequirementDataModel> AuctionRequirements { get; set; } = null!;
+        public short StatusId { get; set; }
+        public string StatusName { get; set; } = string.Empty;
         public DateTimeOffset CreatedDateTime { get; set; }
         public DateTimeOffset LastModifiedDateTime { get; set; }
+    }
+
+    public class AuctionLifecycleDataModel
+    {
+        public int Id { get; set; }
+        public short StatusId { get; set; }
+        public string StatusName { get; set; } = string.Empty;
+        public DateTimeOffset AuctionStartTime { get; set; }
+        public DateTimeOffset AuctionEndTime { get; set; }
+        public bool ShouldStart { get; set; }
+        public bool ShouldClose { get; set; }
     }
 
     public class AuctionResponseModel
