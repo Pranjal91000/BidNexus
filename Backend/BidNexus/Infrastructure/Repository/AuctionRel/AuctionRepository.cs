@@ -97,6 +97,7 @@ namespace Infrastructure.Repository.AuctionRel
             var auction = await _dbContext.Auctions
                 .AsNoTracking()
                 .Include(a => a.Organization)
+                .Include(a => a.Status)
                 .Include(a => a.AuctionRequirements)
                     .ThenInclude(r => r.Item)
                 .Include(a => a.AuctionRequirements)
