@@ -51,6 +51,8 @@ namespace Core.Models.AuctionRelated
         public int Id { get; set; }
         public string DocNoYearly { get; set; } = string.Empty;
         public DateOnly DocDate { get; set; }
+        public bool IsForwardAuction { get; set; }
+        public string StatusName { get; set; } = string.Empty;
         public DateTimeOffset? AuctionIntentSubmissionDate { get; set; }
         public OrganizationOverviewDataModel Organization { get; set; } = null!;
         public List<AuctionRequirementDataModel> AuctionRequirements { get; set; } = null!;
