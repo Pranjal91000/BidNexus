@@ -170,6 +170,7 @@ namespace Infrastructure.Repository.AuctionRel
                 .Select(a => new AuctionLifecycleDataModel
                 {
                     Id = a.Id,
+                    TenantId = a.TenantId,
                     StatusId = a.StatusId,
                     StatusName = a.Status.Name,
                     AuctionStartTime = a.AuctionStartTime,
