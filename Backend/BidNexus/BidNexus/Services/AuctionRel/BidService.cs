@@ -137,7 +137,7 @@ public class BidService(
                 var taxAmount = CalculateTaxAmount(
                     tax.ChargeType.Code,
                     tax.ChargeType.Name,
-                    taxRequest.TaxValue,
+                    tax.Value,
                     baseAmount,
                     requirement.Quantity);
 
