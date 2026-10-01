@@ -29,6 +29,7 @@ namespace Core.Models.AuctionRelated
     public class AuctionLifecycleDataModel
     {
         public int Id { get; set; }
+        public int TenantId { get; set; }
         public short StatusId { get; set; }
         public string StatusName { get; set; } = string.Empty;
         public DateTimeOffset AuctionStartTime { get; set; }
