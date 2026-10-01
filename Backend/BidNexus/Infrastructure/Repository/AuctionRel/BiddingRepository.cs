@@ -52,7 +52,7 @@ namespace Infrastructure.Repository.AuctionRel
                 ? []
                 : await _appDbContext.TaxMasters
                     .AsNoTracking()
-                    .Where(x => taxIds.Contains(x.Id))
+                    .Where(x => taxIds.Contains(x.Id) && !x.Status.Inactive)
                     .ToListAsync(cancellationToken);
 
             var taxNatures = taxNatureIds.Count == 0
