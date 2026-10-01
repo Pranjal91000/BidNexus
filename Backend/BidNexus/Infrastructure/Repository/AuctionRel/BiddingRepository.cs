@@ -55,18 +55,28 @@ namespace Infrastructure.Repository.AuctionRel
                     .Where(x => taxIds.Contains(x.Id) && !x.Status.Inactive)
                     .ToListAsync(cancellationToken);
 
-            var taxNatures = taxNatureIds.Count == 0
+            var resolvedTaxNatureIds = taxNatureIds
+                .Concat(taxMasters.Select(x => x.TaxNatureId))
+                .Distinct()
+                .ToArray();
+
+            var resolvedChargeTypeIds = chargeTypeIds
+                .Concat(taxMasters.Select(x => x.ChargeTypeId))
+                .Distinct()
+                .ToArray();
+
+            var taxNatures = resolvedTaxNatureIds.Length == 0
                 ? []
                 : await _appDbContext.TaxNatures
                     .AsNoTracking()
-                    .Where(x => taxNatureIds.Contains(x.Id))
+                    .Where(x => resolvedTaxNatureIds.Contains(x.Id))
                     .ToListAsync(cancellationToken);
 
-            var chargeTypes = chargeTypeIds.Count == 0
+            var chargeTypes = resolvedChargeTypeIds.Length == 0
                 ? []
                 : await _appDbContext.ChargeTypes
                     .AsNoTracking()
-                    .Where(x => chargeTypeIds.Contains(x.Id))
+                    .Where(x => resolvedChargeTypeIds.Contains(x.Id))
                     .ToListAsync(cancellationToken);
 
             var currentBids = _appDbContext.Bids
