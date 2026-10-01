@@ -291,6 +291,8 @@ namespace Infrastructure.Repository.AuctionRel
                     Id = a.Id,
                     DocNoYearly = a.DocNoYearly,
                     DocDate = a.DocDate,
+                    IsForwardAuction = a.IsForwardAuction,
+                    StatusName = a.Status.Name,
                     AuctionIntentSubmissionDate = a.AuctionIntentSubmissionDate,
                     Organization = new OrganizationOverviewDataModel
                     {
