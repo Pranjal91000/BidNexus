@@ -129,7 +129,7 @@ namespace Infrastructure.Repository.AuctionRel
                 else
                 {
                     bid.BidRevisionNo = 1;
-                    bid.MainBidId = 0;
+                    bid.MainBidId = null;
                 }
 
                 await _appDbContext.Bids.AddAsync(bid, cancellationToken);
