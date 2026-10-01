@@ -10,13 +10,14 @@ namespace Core.Abstraction.AuctionRelated
         Task<AuctionDataModel> GetById(int id);
         Task<List<AuctionGetDataModel>> Get(short categoryId, short pageNo, short pageSize);
         Task<bool> DeleteAsync(int id);
-
         Task<List<AuctionLifecycleDataModel>> GetAuctionsForLifecycleAsync(
-            DateTimeOffset now,
-            string scheduledStatusName,
-            string activeStatusName,
-            string closedStatusName);
-
+            DateTimeOffset now, string scheduledStatusName, string activeStatusName, string closedStatusName);
         Task UpdateStatusAsync(int auctionId, string statusName);
+        Task<bool> CanAccessAuctionAsync(
+            int auctionId,
+            int userId,
+            int tenantId,
+            string role,
+            CancellationToken cancellationToken = default);
     }
 }
