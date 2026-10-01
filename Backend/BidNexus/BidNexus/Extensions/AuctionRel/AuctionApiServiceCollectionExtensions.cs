@@ -15,7 +15,7 @@ public static class AuctionApiServiceCollectionExtensions
     {
         services.AddScoped<IAuctionService, AuctionService>();
         services.AddScoped<IBidService, BidService>();
-        services.AddScoped<IAuctionRealtimeService, AuctionRealtimeService>();
+        services.AddScoped<IAuctionRealtimeService, Core.Services.AuctionRealtimeService>();
         services.AddSingleton<IAuctionEngine, AuctionEngine>();
         services.Configure<AuctionEngineOptions>(
             configuration.GetSection(AuctionEngineOptions.SectionName));
