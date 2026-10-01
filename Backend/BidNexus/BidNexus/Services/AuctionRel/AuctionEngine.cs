@@ -3,22 +3,20 @@ using API.Abstraction.AuctionRel;
 using API.Models.AuctionRel;
 using Core.Abstraction.AuctionRelated;
 using FluentValidation;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 namespace API.Services.AuctionRel;
 
 public sealed class AuctionEngine(
-    IAuctionRepository auctionRepository,
-    IBidService bidService,
-    IValidator<BidCreateRequest> validator,
-    Microsoft.Extensions.Options.IOptions<AuctionEngineOptions> options) : IAuctionEngine
+    IServiceScopeFactory scopeFactory,
+    IOptions<AuctionEngineOptions> options) : IAuctionEngine
 {
-    private readonly IAuctionRepository _auctionRepository = auctionRepository;
-    private readonly IBidService _bidService = bidService;
-    private readonly IValidator<BidCreateRequest> _validator = validator;
+    private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
     private readonly AuctionEngineOptions _options = options.Value;
 
-    // One serializer per auction. Different auctions can process concurrently,
-    // while bids for the same auction are processed sequentially.
+    // Singleton engine + one semaphore per auction gives us one shared
+    // serialization point across all HTTP requests handled by this process.
     private readonly ConcurrentDictionary<int, SemaphoreSlim> _auctionLocks = new();
 
     public async Task<BidResponseDataModel> ProcessBidAsync(
@@ -36,7 +34,16 @@ public sealed class AuctionEngine(
 
         try
         {
-            var auction = await _auctionRepository.GetById(request.AuctionId);
+            using var scope = _scopeFactory.CreateScope();
+
+            var auctionRepository =
+                scope.ServiceProvider.GetRequiredService<IAuctionRepository>();
+            var bidService =
+                scope.ServiceProvider.GetRequiredService<IBidService>();
+            var validator =
+                scope.ServiceProvider.GetRequiredService<IValidator<BidCreateRequest>>();
+
+            var auction = await auctionRepository.GetById(request.AuctionId);
             var now = DateTimeOffset.UtcNow;
 
             if (now < auction.AuctionStartTime)
@@ -54,12 +61,12 @@ public sealed class AuctionEngine(
                     $"Auction is not active. Current status: {auction.StatusName ?? "Unknown"}.");
             }
 
-            var validation = await _validator.ValidateAsync(request, cancellationToken);
+            var validation = await validator.ValidateAsync(request, cancellationToken);
 
             if (!validation.IsValid)
                 throw new ValidationException(validation.Errors);
 
-            return await _bidService.ProcessBidAsync(request, cancellationToken);
+            return await bidService.ProcessBidAsync(request, cancellationToken);
         }
         finally
         {
