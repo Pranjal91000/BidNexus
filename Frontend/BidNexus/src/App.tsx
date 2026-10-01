@@ -141,8 +141,9 @@ function App() {
       .configureLogging(LogLevel.Warning)
       .build()
 
-    connection.on('BidAccepted', (event: Bid) => {
-      setBids(current => [event, ...current.filter(b => b.id !== event.id)])
+    connection.on('BidAccepted', (event: { AuctionId: number; BidId: number; VendorId: number; NetAmount: number }) => {
+      const liveBid: Bid = { id: event.BidId, vendorId: event.VendorId, netAmount: event.NetAmount, basicAmount: event.NetAmount, taxAmount: 0, createdAt: new Date().toISOString(), isCurrent: true, bidRevisionNo: 0 }
+      setBids(current => [liveBid, ...current.filter(b => b.id !== event.BidId)])
       setNotice('A new bid was accepted.')
     })
     connection.on('AuctionClosed', () => {
