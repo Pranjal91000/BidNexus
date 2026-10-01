@@ -20,98 +20,36 @@ namespace Core.Entities.Auction
         public ICollection<VendorIntent> VendorIntent { get; set; } = null!;
         public ICollection<AuctionRequirement> AuctionRequirements { get; set; } = null!;
         public ICollection<Bid> Bids { get; set; } = null!;
-        public AuctionStatement AuctionStatement { get; set; } = null!;
+        public ICollection<AuctionStatement> AuctionStatements { get; set; } = null!;
         public short StatusId { get; set; }
         public Status Status { get; set; } = null!;
 
-        public Auction(
-            string auctionName,
-            string about,
-            string docNoYearly,
-            DateOnly docDate,
-            bool isForwardAuction,
-            DateTimeOffset auctionStartTime,
-            DateTimeOffset auctionEndTime,
-            Guid? docAttachmentId,
-            bool openToAll,
-            bool isBidPriceHidden,
-            int organizationId,
-            short statusId)
+        public Auction(string auctionName,string about,string docNoYearly,DateOnly docDate,bool isForwardAuction,
+            DateTimeOffset auctionStartTime,DateTimeOffset auctionEndTime,Guid? docAttachmentId,bool openToAll,
+            bool isBidPriceHidden,int organizationId,short statusId)
         {
-            AuctionName = auctionName;
-            About = about;
-            DocNoYearly = docNoYearly;
-            DocDate = docDate;
-            IsForwardAuction = isForwardAuction;
-            AuctionStartTime = auctionStartTime;
-            AuctionEndTime = auctionEndTime;
-            DocAttachmentId = docAttachmentId;
-            OpenToAll = openToAll;
-            IsBidPriceHidden = isBidPriceHidden;
-            OrganizationId = organizationId;
-            StatusId = statusId;
+            AuctionName=auctionName; About=about; DocNoYearly=docNoYearly; DocDate=docDate;
+            IsForwardAuction=isForwardAuction; AuctionStartTime=auctionStartTime; AuctionEndTime=auctionEndTime;
+            DocAttachmentId=docAttachmentId; OpenToAll=openToAll; IsBidPriceHidden=isBidPriceHidden;
+            OrganizationId=organizationId; StatusId=statusId;
         }
 
-        public Auction(
-            int id,
-            string auctionName,
-            string about,
-            string docNoYearly,
-            DateOnly docDate,
-            bool isForwardAuction,
-            DateTimeOffset auctionStartTime,
-            DateTimeOffset auctionEndTime,
-            Guid? docAttachmentId,
-            bool openToAll,
-            bool isBidPriceHidden,
-            int organizationId,
-            short statusId)
-            : this(
-                auctionName,
-                about,
-                docNoYearly,
-                docDate,
-                isForwardAuction,
-                auctionStartTime,
-                auctionEndTime,
-                docAttachmentId,
-                openToAll,
-                isBidPriceHidden,
-                organizationId,
-                statusId)
-        {
-            Id = id;
-        }
+        public Auction(int id,string auctionName,string about,string docNoYearly,DateOnly docDate,bool isForwardAuction,
+            DateTimeOffset auctionStartTime,DateTimeOffset auctionEndTime,Guid? docAttachmentId,bool openToAll,
+            bool isBidPriceHidden,int organizationId,short statusId)
+            : this(auctionName,about,docNoYearly,docDate,isForwardAuction,auctionStartTime,auctionEndTime,
+                docAttachmentId,openToAll,isBidPriceHidden,organizationId,statusId) => Id=id;
 
         public Auction() { }
 
-        public void Update(
-            string auctionName,
-            string about,
-            string docNoYearly,
-            DateOnly docDate,
-            bool isForwardAuction,
-            DateTimeOffset auctionStartTime,
-            DateTimeOffset auctionEndTime,
-            Guid? docAttachmentId,
-            bool openToAll,
-            bool isBidPriceHidden,
-            int organizationId,
-            short statusId)
+        public void Update(string auctionName,string about,string docNoYearly,DateOnly docDate,bool isForwardAuction,
+            DateTimeOffset auctionStartTime,DateTimeOffset auctionEndTime,Guid? docAttachmentId,bool openToAll,
+            bool isBidPriceHidden,int organizationId,short statusId)
         {
-            AuctionName = auctionName;
-            About = about;
-            DocNoYearly = docNoYearly;
-            DocDate = docDate;
-            IsForwardAuction = isForwardAuction;
-            AuctionStartTime = auctionStartTime;
-            AuctionEndTime = auctionEndTime;
-            DocAttachmentId = docAttachmentId;
-            OpenToAll = openToAll;
-            IsBidPriceHidden = isBidPriceHidden;
-            OrganizationId = organizationId;
-            StatusId = statusId;
-            LastModifiedDateTime = DateTimeOffset.UtcNow;
+            AuctionName=auctionName; About=about; DocNoYearly=docNoYearly; IsForwardAuction=isForwardAuction;
+            AuctionStartTime=auctionStartTime; AuctionEndTime=auctionEndTime; DocAttachmentId=docAttachmentId;
+            OpenToAll=openToAll; IsBidPriceHidden=isBidPriceHidden; OrganizationId=organizationId;
+            StatusId=statusId; LastModifiedDateTime=DateTimeOffset.UtcNow;
         }
     }
 }
