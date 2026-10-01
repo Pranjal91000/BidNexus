@@ -1,4 +1,5 @@
 using Core.Abstraction.AuctionRelated;
+using Core.Abstraction.Services;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -7,11 +8,15 @@ namespace API.Services.AuctionRel;
 
 public sealed class AuctionLifecycleWorker(
     IServiceScopeFactory scopeFactory,
+    IAuctionStatementService statementService,
+    IAuctionRealtimeService realtimeService,
     IOptions<AuctionEngineOptions> options,
     ILogger<AuctionLifecycleWorker> logger) : BackgroundService
 {
     private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
     private readonly AuctionEngineOptions _options = options.Value;
+    private readonly IAuctionStatementService _statementService = statementService;
+    private readonly IAuctionRealtimeService _realtimeService = realtimeService;
     private readonly ILogger<AuctionLifecycleWorker> _logger = logger;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -72,6 +77,15 @@ public sealed class AuctionLifecycleWorker(
                 await repository.UpdateStatusAsync(
                     auction.Id,
                     _options.ClosedStatusName);
+
+                await _statementService.GenerateAsync(
+                    auction.Id,
+                    auction.TenantId,
+                    cancellationToken);
+
+                await _realtimeService.PublishAuctionClosedAsync(
+                    auction.Id,
+                    cancellationToken);
             }
         }
     }
