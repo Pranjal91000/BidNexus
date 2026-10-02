@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using API.Abstraction.AuctionRel;
 using API.Models.AuctionRel;
 using Core.Abstraction.AuctionRelated;
+using Core.Models.AuctionRelated;
 using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;

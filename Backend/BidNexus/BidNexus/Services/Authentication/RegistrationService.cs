@@ -38,7 +38,8 @@ namespace API.Services.Authentication
 
             tenant.PasswordHash = _passwordHasher.HashPassword(tenant, input.Password);
 
-            await _dbContext.ExecuteTransactionalAsync(async () =>
+            await using var transaction = await _dbContext.Database.BeginTransactionAsync();
+            try
             {
                 var tenantResponse = await _tenantRepository.Register(tenant);
 
@@ -55,7 +56,7 @@ namespace API.Services.Authentication
 
                     await _tenantRepository.LinkTenantToUser(
                         organizationResponse.Id,
-                        tenant.Id);
+                        tenantResponse.Id);
                 }
                 else
                 {
@@ -68,9 +69,18 @@ namespace API.Services.Authentication
 
                     await _tenantRepository.LinkTenantToUser(
                         vendorResponse.Id,
-                        tenant.Id);
+                        tenantResponse.Id);
                 }
-            });
+
+                // Ensure changes persisted if repositories don't already call SaveChanges
+                await _dbContext.SaveChangesAsync();
+                await transaction.CommitAsync();
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
 
             var authToken = _authCoreService.GenerateAuthToken(
                 tenant.ReferenceId,

@@ -1,6 +1,5 @@
 using Core.Abstraction.Auth;
 using Core.Models.Auth;
-using Core.Entities.TenantRelated;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -8,10 +7,10 @@ namespace Infrastructure.Repository.Auth
 {
     public class AuthRepository(
         AppDbContext dbContext,
-        IPasswordHasher<Tenant> passwordHasher) : IAuthRepository
+        IPasswordHasher<Core.Entities.TenantRelated.Tenant> passwordHasher) : IAuthRepository
     {
         private readonly AppDbContext _dbContext = dbContext;
-        private readonly IPasswordHasher<Tenant> _passwordHasher = passwordHasher;
+        private readonly IPasswordHasher<Core.Entities.TenantRelated.Tenant> _passwordHasher = passwordHasher;
 
         public async Task<AuthDataModel?> ValidateLogin(
             string username,
