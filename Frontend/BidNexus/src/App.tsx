@@ -1,267 +1,74 @@
 import { useEffect, useMemo, useState } from 'react'
-import { HubConnectionBuilder, LogLevel } from '@microsoft/signalr'
+import { HubConnectionBuilder, LogLevel, type HubConnection } from '@microsoft/signalr'
 import './App.css'
 
-type Auction = {
-  id: number
-  docNoYearly: string
-  docDate: string
-  auctionIntentSubmissionDate?: string
-  organization?: { name?: string }
-  auctionRequirements?: Requirement[]
-  isForwardAuction?: boolean
-  auctionStartTime?: string
-  auctionEndTime?: string
-  statusName?: string
-}
-
-type Requirement = {
-  id: number
-  lineNo: number
-  item?: { itemName?: string; name?: string }
-  unit?: { alias?: string; name?: string }
-  quantity: number
-  technicalSpecification?: string
-}
-
-type Bid = {
-  id: number
-  vendorId: number
-  netAmount: number
-  basicAmount: number
-  taxAmount: number
-  createdAt: string
-  isCurrent: boolean
-  bidRevisionNo: number
-  vendor?: { name?: string }
-}
-
-type Statement = {
-  id: number
-  auctionId: number
-  bidId: number
-  vendorId: number
-  vendorName: string
-  netAmount: number
-  rank: number
-  isWinner: boolean
-}
+type Role = 'Vendor' | 'Organization' | 'Unknown'
+type Page = 'overview' | 'auctions' | 'bids' | 'statements' | 'workspace'
+type Auction = { id:number; auctionName?:string; about?:string; docNoYearly:string; docDate:string; organization?:{name?:string}; auctionRequirements?:Requirement[]; isForwardAuction?:boolean; auctionStartTime?:string; auctionEndTime?:string; statusName?:string; openToAll?:boolean; isBidPriceHidden?:boolean }
+type Requirement = { id:number; lineNo:number; itemId?:number; item?:{itemName?:string;name?:string}; unitId?:number; unit?:{alias?:string;name?:string}; quantity:number; technicalSpecification?:string }
+type Bid = { id:number; auctionId?:number; vendorId:number; netAmount:number; basicAmount:number; taxAmount:number; createdAt:string; isCurrent:boolean; bidRevisionNo:number; vendor?:{name?:string} }
+type Statement = { id:number; auctionId:number; bidId:number; vendorId:number; vendorName:string; netAmount:number; rank:number; isWinner:boolean }
+type Claims = { role:Role; userId:number; tenantId:number; email:string; name:string }
 
 const API = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:5000' : '')
-const money = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 })
+const money = new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR',maximumFractionDigits:2})
 
-async function api<T>(path: string, token: string, options: RequestInit = {}) {
-  const response = await fetch(`${API}${path}`, {
-    ...options,
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, ...(options.headers || {}) },
-  })
-  if (!response.ok) throw new Error(await response.text() || `Request failed: ${response.status}`)
-  return response.status === 204 ? undefined as T : response.json() as Promise<T>
+async function api<T>(path:string, token:string, options:RequestInit={}) {
+  const r=await fetch(API+path,{...options,headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`,...(options.headers||{})}})
+  if(!r.ok){const text=await r.text();let msg=text||`Request failed: ${r.status}`;try{msg=JSON.parse(text).message||msg}catch{}throw new Error(msg)}
+  return r.status===204?undefined as T:r.json() as Promise<T>
+}
+function claims(token:string):Claims {
+  try{const p=JSON.parse(atob(token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));const role=p.role||p['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'];return {role:role==='Vendor'||role==='Organization'?role:'Unknown',userId:+(p.userId||0),tenantId:+(p.tenantId||0),email:p.email||'',name:p.name||p.unique_name||p.email||'BidNexus user'}}catch{return {role:'Unknown',userId:0,tenantId:0,email:'',name:'BidNexus user'}}
+}
+function tone(s=''){s=s.toLowerCase();return s.includes('active')||s.includes('live')?'live':s.includes('close')||s.includes('complete')?'closed':'scheduled'}
+function date(v?:string){if(!v)return '—';const d=new Date(v);return isNaN(d.getTime())?v:d.toLocaleString([], {dateStyle:'medium',timeStyle:'short'})}
+
+function App(){
+ const [token,setToken]=useState(()=>localStorage.getItem('bidnexus_token')||'')
+ const [me,setMe]=useState<Claims>(()=>claims(localStorage.getItem('bidnexus_token')||''))
+ const [page,setPage]=useState<Page>('overview'),[auctions,setAuctions]=useState<Auction[]>([]),[selected,setSelected]=useState<Auction|null>(null)
+ const [notice,setNotice]=useState(''),[loading,setLoading]=useState(false),[search,setSearch]=useState('')
+ useEffect(()=>{if(token){localStorage.setItem('bidnexus_token',token);setMe(claims(token));load()}},[token])
+ async function load(){setLoading(true);try{setAuctions(await api<Auction[]>('/api/auctions?pageNo=1&pageSize=100',token));setNotice('')}catch(e){setNotice(e instanceof Error?e.message:'Unable to load auctions')}finally{setLoading(false)}}
+ async function open(a:Auction){setSelected(a);setPage('auctions')}
+ function logout(){localStorage.removeItem('bidnexus_token');setToken('');setSelected(null)}
+ const filtered=useMemo(()=>auctions.filter(a=>`${a.docNoYearly} ${a.auctionName||''} ${a.organization?.name||''}`.toLowerCase().includes(search.toLowerCase())),[auctions,search])
+ if(!token)return <TokenGate connect={setToken}/>
+ return <div className="app-shell">
+  <aside className="sidebar">
+   <div className="brand"><b>B</b><span>Bid<span>Nexus</span></span></div>
+   <div className="identity"><strong>{me.name}</strong><small>{me.role} workspace</small></div>
+   <nav><Nav active={page==='overview'} icon="⌂" click={()=>{setPage('overview');setSelected(null)}}>Overview</Nav><Nav active={page==='auctions'} icon="◈" click={()=>{setPage('auctions');setSelected(null)}}>Auctions</Nav>{me.role==='Vendor'&&<Nav active={page==='bids'} icon="↗" click={()=>{setPage('bids');setSelected(null)}}>My bids</Nav>}{me.role==='Organization'&&<Nav active={page==='statements'} icon="▤" click={()=>{setPage('statements');setSelected(null)}}>Statements</Nav>}<Nav active={page==='workspace'} icon="⚙" click={()=>{setPage('workspace');setSelected(null)}}>Workspace</Nav></nav>
+   <div className="side-bottom"><span className="connection"><i/> API connected</span><button onClick={logout}>↪ Disconnect</button></div>
+  </aside>
+  <main className="workspace">
+   <header><div><p className="eyebrow">PROCUREMENT CONTROL</p><h1>{({overview:'Operations overview',auctions:'Auction register',bids:'My bidding activity',statements:'Auction statements',workspace:'Workspace'})[page]}</h1></div><div className="header-actions"><span className="sync"><i/> Secure session</span><button onClick={load}>↻</button><span className="avatar">{me.name[0]?.toUpperCase()}</span></div></header>
+   {notice&&<div className="notice">{notice}<button onClick={()=>setNotice('')}>×</button></div>}
+   {page==='overview'&&<Overview auctions={auctions} loading={loading} role={me.role} open={open} go={()=>setPage('auctions')}/>}
+   {page==='auctions'&&(selected?<Desk auction={selected} token={token} me={me} back={()=>setSelected(null)} notice={setNotice} refresh={()=>open(selected)}/>:<Register auctions={filtered} search={search} setSearch={setSearch} loading={loading} open={open}/>)}
+   {page==='bids'&&<MyBids auctions={auctions} token={token} userId={me.userId} open={open} notice={setNotice}/>}
+   {page==='statements'&&<Statements auctions={auctions} token={token} open={open} notice={setNotice}/>}
+   {page==='workspace'&&<Workspace me={me} api={API||'same origin'}/>}
+  </main>
+ </div>
 }
 
-function statusTone(status = '') {
-  const s = status.toLowerCase()
-  return s.includes('active') ? 'live' : s.includes('close') ? 'closed' : 'scheduled'
-}
-
-function App() {
-  const [token, setToken] = useState(() => localStorage.getItem('bidnexus_token') || '')
-  const [auctions, setAuctions] = useState<Auction[]>([])
-  const [selected, setSelected] = useState<Auction | null>(null)
-  const [bids, setBids] = useState<Bid[]>([])
-  const [statement, setStatement] = useState<Statement[]>([])
-  const [bidAmount, setBidAmount] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [notice, setNotice] = useState('')
-  const [search, setSearch] = useState('')
-  const [realtime, setRealtime] = useState(false)
-
-  useEffect(() => {
-    if (!token) return
-    localStorage.setItem('bidnexus_token', token)
-    loadAuctions()
-  }, [token])
-
-  async function loadAuctions() {
-    setLoading(true)
-    try {
-      setAuctions(await api<Auction[]>('/api/auctions?pageNo=1&pageSize=50', token))
-    } catch (e) { setNotice(e instanceof Error ? e.message : 'Unable to load auctions') }
-    finally { setLoading(false) }
-  }
-
-  async function openAuction(auction: Auction) {
-    setSelected(auction)
-    setStatement([])
-    setNotice('')
-    try {
-      const [detail, leaderboard] = await Promise.all([
-        api<Auction>(`/api/auctions/${auction.id}`, token),
-        api<Bid[]>(`/api/bids/auction/${auction.id}/leaderboard`, token),
-      ])
-      setSelected(detail)
-      setBids(leaderboard)
-    } catch (e) { setNotice(e instanceof Error ? e.message : 'Unable to load auction') }
-  }
-
-  async function submitBid() {
-    if (!selected || !bidAmount) return
-    const amount = Number(bidAmount)
-    if (!Number.isFinite(amount) || amount <= 0) return setNotice('Enter a valid bid amount.')
-    const details = (selected.auctionRequirements || []).map(r => ({
-      auctionRequirementId: r.id, rate: amount / Math.max(r.quantity, 1), baseAmount: amount, netAmount: amount, taxes: [],
-    }))
-    try {
-      const result = await api<Bid>('/api/bids', token, {
-        method: 'POST',
-        body: JSON.stringify({
-          auctionId: selected.id, vendorId: 0, basicAmount: amount, taxAmount: 0,
-          discountAmount: 0, netAmount: amount, mainBidId: null, bidRevisionNo: 0, bidDetails: details,
-        }),
-      })
-      setBids(current => [{ ...result, isCurrent: true }, ...current])
-      setBidAmount('')
-      setNotice('Bid accepted. Other participants have been notified live.')
-    } catch (e) { setNotice(e instanceof Error ? e.message : 'Bid could not be submitted') }
-  }
-
-  async function loadStatement() {
-    if (!selected) return
-    try {
-      setStatement(await api<Statement[]>(`/api/auctions/${selected.id}/statement`, token))
-    } catch (e) { setNotice(e instanceof Error ? e.message : 'Statement unavailable') }
-  }
-
-  useEffect(() => {
-    if (!selected || !token) return
-
-    const connection = new HubConnectionBuilder()
-      .withUrl(`${API}/hubs/auction`, { accessTokenFactory: () => token })
-      .withAutomaticReconnect()
-      .configureLogging(LogLevel.Warning)
-      .build()
-
-    connection.on('BidAccepted', (event: { AuctionId: number; BidId: number; VendorId: number; NetAmount: number }) => {
-      const liveBid: Bid = { id: event.BidId, vendorId: event.VendorId, netAmount: event.NetAmount, basicAmount: event.NetAmount, taxAmount: 0, createdAt: new Date().toISOString(), isCurrent: true, bidRevisionNo: 0 }
-      setBids(current => [liveBid, ...current.filter(b => b.id !== event.BidId)])
-      setNotice('A new bid was accepted.')
-    })
-    connection.on('AuctionClosed', () => {
-      setSelected(current => current ? { ...current, statusName: 'Closed' } : current)
-      setNotice('Auction closed. Final statement is now available to the organization.')
-    })
-
-    connection.start()
-      .then(() => connection.invoke('JoinAuction', selected.id))
-      .then(() => setRealtime(true))
-      .catch(() => setRealtime(false))
-
-    return () => {
-      setRealtime(false)
-      connection.invoke('LeaveAuction', selected.id).catch(() => undefined)
-      connection.stop()
-    }
-  }, [selected?.id, token])
-
-  const filtered = useMemo(() => auctions.filter(a =>
-    `${a.docNoYearly} ${a.organization?.name || ''}`.toLowerCase().includes(search.toLowerCase())
-  ), [auctions, search])
-
-  if (!token) return (
-    <main className="auth-shell">
-      <div className="auth-card">
-        <div className="brand"><span className="brand-mark">B</span><span>Bid<span>Nexus</span></span></div>
-        <p className="eyebrow">AUCTION OPERATIONS</p>
-        <h1>Enter the command center.</h1>
-        <p className="muted">Paste a JWT from the BidNexus API to connect this frontend to your live environment.</p>
-        <label>API token</label>
-        <textarea value={token} onChange={e => setToken(e.target.value.trim())} placeholder="eyJhbGciOi..." />
-        <button className="primary" disabled={!token.trim()} onClick={() => setToken(token.trim())}>Connect to BidNexus</button>
-      </div>
-    </main>
-  )
-
-  return (
-    <div className="app-shell">
-      <aside>
-        <div className="brand"><span className="brand-mark">B</span><span>Bid<span>Nexus</span></span></div>
-        <nav>
-          <button className="nav-active">Overview</button>
-          <button onClick={loadAuctions}>Auctions</button>
-          <button onClick={() => selected && loadStatement()}>Statements</button>
-        </nav>
-        <div className="side-bottom">
-          <div className="connection"><i /> API connected</div>
-          <button className="logout" onClick={() => { localStorage.removeItem('bidnexus_token'); setToken('') }}>Disconnect</button>
-        </div>
-      </aside>
-
-      <main className="workspace">
-        <header>
-          <div>
-            <p className="eyebrow">PROCUREMENT CONTROL</p>
-            <h1>Live auction desk</h1>
-          </div>
-          <div className="header-actions"><span className="live-dot" />{realtime ? "Realtime connected" : "Realtime connecting"} <button onClick={loadAuctions}>↻</button></div>
-        </header>
-
-        {notice && <div className="notice">{notice}<button onClick={() => setNotice('')}>×</button></div>}
-
-        {!selected ? (
-          <>
-            <section className="stats">
-              <div><span>Visible auctions</span><strong>{auctions.length}</strong></div>
-              <div><span>Live now</span><strong>{auctions.filter(a => statusTone(a.statusName) === 'live').length}</strong></div>
-              <div><span>Scheduled</span><strong>{auctions.filter(a => statusTone(a.statusName) === 'scheduled').length}</strong></div>
-              <div><span>Closed</span><strong>{auctions.filter(a => statusTone(a.statusName) === 'closed').length}</strong></div>
-            </section>
-            <div className="section-head"><div><p className="eyebrow">AUCTION REGISTER</p><h2>Opportunities</h2></div><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search auction..." /></div>
-            <section className="auction-grid">
-              {loading ? <div className="empty">Loading auctions…</div> : filtered.map(a => (
-                <button className="auction-card" key={a.id} onClick={() => openAuction(a)}>
-                  <div className="card-top"><span className={`status ${statusTone(a.statusName)}`}>{a.statusName || 'Scheduled'}</span><span>#{a.id}</span></div>
-                  <h3>{a.docNoYearly || `Auction ${a.id}`}</h3>
-                  <p>{a.organization?.name || 'Organization auction'}</p>
-                  <div className="card-foot"><span>{a.isForwardAuction ? 'Forward' : 'Reverse'} auction</span><span>View →</span></div>
-                </button>
-              ))}
-              {!loading && filtered.length === 0 && <div className="empty">No auctions match your search.</div>}
-            </section>
-          </>
-        ) : (
-          <AuctionDesk auction={selected} bids={bids} bidAmount={bidAmount} setBidAmount={setBidAmount} submitBid={submitBid} statement={statement} loadStatement={loadStatement} />
-        )}
-      </main>
-    </div>
-  )
-}
-
-function AuctionDesk({ auction, bids, bidAmount, setBidAmount, submitBid, statement, loadStatement }: {
-  auction: Auction; bids: Bid[]; bidAmount: string; setBidAmount: (v: string) => void; submitBid: () => void; statement: Statement[]; loadStatement: () => void
-}) {
-  const best = bids.length ? bids[0].netAmount : null
-  return <div className="desk">
-    <button className="back" onClick={() => location.reload()}>← All auctions</button>
-    <div className="auction-hero">
-      <div><p className="eyebrow">{auction.isForwardAuction ? 'FORWARD AUCTION' : 'REVERSE AUCTION'} · #{auction.id}</p><h1>{auction.docNoYearly || 'Auction'}</h1><p className="muted">{auction.organization?.name || 'Organization'} · {auction.auctionRequirements?.length || 0} requirements</p></div>
-      <span className={`status large ${statusTone(auction.statusName)}`}>{auction.statusName || 'Scheduled'}</span>
-    </div>
-    <div className="desk-grid">
-      <section className="panel bid-panel">
-        <div className="panel-head"><div><p className="eyebrow">YOUR BID</p><h2>{auction.isForwardAuction ? 'Submit your offer' : 'Submit your lowest offer'}</h2></div><span className="live-pill"><i /> LIVE</span></div>
-        <div className="amount-wrap"><span>₹</span><input type="number" value={bidAmount} onChange={e => setBidAmount(e.target.value)} placeholder="0.00" /><small>Net amount</small></div>
-        {best !== null && <div className="best-row"><span>Current market position</span><strong>{money.format(best)}</strong></div>}
-        <button className="primary wide" onClick={submitBid}>Submit bid <span>↗</span></button>
-        <p className="hint">Server calculates quantity, taxes and final net amount. Client values are treated as preview only.</p>
-      </section>
-      <section className="panel">
-        <div className="panel-head"><div><p className="eyebrow">LIVE MARKET</p><h2>Leaderboard</h2></div><span className="live-pill"><i /> LIVE</span></div>
-        <div className="leaderboard">{bids.slice(0, 8).map((b, i) => <div className={`leader ${i === 0 ? 'leader-first' : ''}`} key={b.id}><b>{String(i + 1).padStart(2, '0')}</b><span>{b.vendor?.name || `Vendor #${b.vendorId}`}</span><strong>{money.format(b.netAmount)}</strong></div>)}{!bids.length && <div className="empty">No bids yet.</div>}</div>
-      </section>
-    </div>
-    <section className="panel requirements"><div className="panel-head"><div><p className="eyebrow">SCOPE</p><h2>Requirements</h2></div></div>{(auction.auctionRequirements || []).map(r => <div className="requirement" key={r.id}><span>{String(r.lineNo).padStart(2, '0')}</span><div><strong>{r.item?.itemName || r.item?.name || `Requirement #${r.id}`}</strong><small>{r.technicalSpecification || 'No technical specification provided'}</small></div><b>{r.quantity} {r.unit?.alias || r.unit?.name || ''}</b></div>)}</section>
-    <section className="panel statement"><div className="panel-head"><div><p className="eyebrow">FINAL RESULT</p><h2>Auction statement</h2></div><button onClick={loadStatement}>Load statement</button></div>{statement.length ? statement.map(s => <div className="winner"><div className="winner-icon">✓</div><div><p className="eyebrow">WINNER</p><h3>{s.vendorName}</h3><span>Bid #{s.bidId} · Rank {s.rank}</span></div><strong>{money.format(s.netAmount)}</strong></div>) : <p className="muted statement-empty">Statement becomes available after the auction closes and is visible to the organization.</p>}</section>
-  </div>
-}
-
+function TokenGate({connect}:{connect:(s:string)=>void}){const[v,setV]=useState('');return <main className="auth-shell"><div className="auth-card"><div className="brand"><b>B</b><span>Bid<span>Nexus</span></span></div><p className="eyebrow">SECURE WORKSPACE</p><h1>Connect your procurement desk.</h1><p>Paste a BidNexus access token. It is stored locally in this browser and sent only with authenticated API requests.</p><label>Access token</label><textarea value={v} onChange={e=>setV(e.target.value)} placeholder="eyJhbGciOi..." autoFocus/><button className="primary" disabled={!v.trim()} onClick={()=>connect(v.trim())}>Enter workspace <span>→</span></button></div></main>}
+function Nav({active,icon,click,children}:{active:boolean;icon:string;click:()=>void;children:string}){return <button className={active?'nav active':'nav'} onClick={click}><span>{icon}</span>{children}</button>}
+function Overview({auctions,loading,role,open,go}:{auctions:Auction[];loading:boolean;role:Role;open:(a:Auction)=>void;go:()=>void}){const live=auctions.filter(a=>tone(a.statusName)==='live'),scheduled=auctions.filter(a=>tone(a.statusName)==='scheduled'),closed=auctions.filter(a=>tone(a.statusName)==='closed');return <div className="stack"><section className="welcome"><div><p className="eyebrow">TODAY'S DESK</p><h2>{role==='Vendor'?'Find the next opportunity.':'Keep every auction moving.'}</h2><p>Monitor auctions, inspect requirements and move from market activity to decisions in one workspace.</p></div><button className="primary" onClick={go}>Open auction register →</button></section><div className="stats"><Stat n={auctions.length} t="Visible auctions"/><Stat n={live.length} t="Live now" green/><Stat n={scheduled.length} t="Scheduled"/><Stat n={closed.length} t="Closed"/></div><div className="section-head"><div><p className="eyebrow">LIVE MARKET</p><h2>Active auctions</h2></div><button className="text-btn" onClick={go}>View all →</button></div>{loading?<Loading/>:live.length?<div className="grid">{live.slice(0,3).map(a=><Card key={a.id} a={a} open={open}/>)}</div>:<Empty title="No live auctions" text="Active auctions will appear here when the engine marks them live."/>}</div>}
+function Stat({n,t,green}:{n:number;t:string;green?:boolean}){return <div className="stat"><span className={green?'stat-icon green':'stat-icon'}>◉</span><div><small>{t}</small><strong>{n}</strong></div></div>}
+function Register({auctions,search,setSearch,loading,open}:{auctions:Auction[];search:string;setSearch:(s:string)=>void;loading:boolean;open:(a:Auction)=>void}){return <div className="stack"><div className="toolbar"><div><p className="eyebrow">AUCTION REGISTER</p><h2>Opportunities</h2></div><div className="search">⌕<input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search auctions"/></div></div>{loading?<Loading/>:auctions.length?<div className="grid">{auctions.map(a=><Card key={a.id} a={a} open={open}/>)}</div>:<Empty title="No auctions found" text="Try another search term."/>}</div>}
+function Card({a,open}:{a:Auction;open:(a:Auction)=>void}){return <button className="card" onClick={()=>open(a)}><div className="card-top"><span className={`status ${tone(a.statusName)}`}>{a.statusName||'Scheduled'}</span><span>#{a.id}</span></div><small className="type">{a.isForwardAuction?'FORWARD':'REVERSE'} AUCTION</small><h3>{a.auctionName||a.docNoYearly}</h3><p>{a.organization?.name||a.docNoYearly}</p><div className="card-meta"><span>◷ {date(a.auctionStartTime)}</span><span>{a.auctionRequirements?.length||0} lines</span></div><div className="card-foot"><span>{a.docNoYearly}</span><b>Open →</b></div></button>}
+function Desk({auction,token,me,back,notice,refresh}:{auction:Auction;token:string;me:Claims;back:()=>void;notice:(s:string)=>void;refresh:()=>void}){const[bids,setBids]=useState<Bid[]>([]),[history,setHistory]=useState<Bid[]>([]),[statement,setStatement]=useState<Statement[]>([]),[amount,setAmount]=useState(''),[tab,setTab]=useState('market'),[sending,setSending]=useState(false);const active=tone(auction.statusName)==='live'
+ useEffect(()=>{(async()=>{try{setBids(await api<Bid[]>(`/api/bids/auction/${auction.id}/leaderboard`,token));if(me.role==='Vendor')setHistory(await api<Bid[]>(`/api/bids/auction/${auction.id}/history?vendorId=${me.userId}`,token))}catch(e){notice(e instanceof Error?e.message:'Unable to load market')}})()},[auction.id])
+ useEffect(()=>{let c:HubConnection|undefined;(async()=>{c=new HubConnectionBuilder().withUrl(`${API}/hubs/auction`,{accessTokenFactory:()=>token}).withAutomaticReconnect().configureLogging(LogLevel.Warning).build();c.on('BidAccepted',(x:{AuctionId:number})=>{if(x.AuctionId===auction.id){notice('New bid accepted in this auction.');refresh()}});c.on('AuctionClosed',()=>{notice('Auction closed.');refresh()});try{await c.start();await c.invoke('JoinAuction',auction.id)}catch{}})();return()=>{c?.invoke('LeaveAuction',auction.id).catch(()=>{});c?.stop()}},[auction.id,token])
+ async function bid(){const n=Number(amount);if(!n||n<0)return notice('Enter a valid bid amount.');setSending(true);try{await api('/api/bids',token,{method:'POST',body:JSON.stringify({auctionId:auction.id,vendorId:me.userId,basicAmount:n,taxAmount:0,discountAmount:0,netAmount:n,mainBidId:null,bidRevisionNo:0,bidDetails:(auction.auctionRequirements||[]).map(r=>({auctionRequirementId:r.id,rate:n/Math.max(r.quantity,1),baseAmount:n,netAmount:n,taxes:[]}))})});setAmount('');notice('Bid accepted by the auction engine.');refresh()}catch(e){notice(e instanceof Error?e.message:'Bid rejected')}finally{setSending(false)}}
+ async function loadStatement(){try{setStatement(await api<Statement[]>(`/api/auctions/${auction.id}/statement`,token))}catch(e){notice(e instanceof Error?e.message:'Statement unavailable')}}
+ return <div className="stack"><button className="back" onClick={back}>← Back to auctions</button><section className="auction-hero"><div><div className="hero-kicker"><span className={`status ${tone(auction.statusName)}`}>{auction.statusName||'Scheduled'}</span><span>{auction.isForwardAuction?'Forward':'Reverse'} auction</span><span>#{auction.id}</span></div><h2>{auction.auctionName||auction.docNoYearly}</h2><p>{auction.about||auction.organization?.name||'Procurement auction'} · {auction.docNoYearly}</p></div><div className="hero-time"><small>START</small><b>{date(auction.auctionStartTime)}</b><small>END</small><b>{date(auction.auctionEndTime)}</b></div></section>{me.role==='Vendor'&&active&&<section className="bid-command"><div><p className="eyebrow">BID COMMAND</p><h2>{auction.isForwardAuction?'Submit your offer':'Submit your lowest offer'}</h2><p>Server-side validation and calculations remain authoritative.</p></div><div className="bid-box"><span>₹</span><input value={amount} type="number" min="0" onChange={e=>setAmount(e.target.value)} placeholder="0.00"/><button className="primary" disabled={sending} onClick={bid}>{sending?'Submitting…':'Submit bid'} →</button></div></section>}<div className="tabs"><button className={tab==='market'?'active':''} onClick={()=>setTab('market')}>Live market <i>{bids.length}</i></button><button className={tab==='req'?'active':''} onClick={()=>setTab('req')}>Requirements <i>{auction.auctionRequirements?.length||0}</i></button>{me.role==='Vendor'&&<button className={tab==='history'?'active':''} onClick={()=>setTab('history')}>My revisions <i>{history.length}</i></button>}{me.role==='Organization'&&<button className={tab==='statement'?'active':''} onClick={()=>{setTab('statement');loadStatement()}}>Statement</button>}</div>{tab==='market'&&<section className="panel"><div className="panel-head"><div><p className="eyebrow">LIVE MARKET</p><h2>Leaderboard</h2></div><span className="live-pill">● REALTIME</span></div>{bids.length?bids.slice(0,12).map((b,i)=><div className="leader" key={b.id}><b>#{i+1}</b><div><strong>{b.vendor?.name||`Vendor #${b.vendorId}`}</strong><small>Revision {b.bidRevisionNo} · {date(b.createdAt)}</small></div><strong>{money.format(b.netAmount)}</strong></div>):<Empty title="No bids yet" text="Accepted bids will appear here."/>}</section>}{tab==='req'&&<section className="panel"><div className="panel-head"><div><p className="eyebrow">AUCTION SCOPE</p><h2>Requirements</h2></div></div>{(auction.auctionRequirements||[]).map(r=><div className="requirement" key={r.id}><span>{String(r.lineNo).padStart(2,'0')}</span><div><strong>{r.item?.itemName||r.item?.name||`Item #${r.itemId||r.id}`}</strong><small>{r.technicalSpecification||'No technical specification provided'}</small></div><b>{r.quantity} {r.unit?.alias||r.unit?.name||`Unit #${r.unitId||''}`}</b></div>)}</section>}{tab==='history'&&<section className="panel"><div className="panel-head"><div><p className="eyebrow">YOUR ACTIVITY</p><h2>Bid revisions</h2></div></div>{history.length?history.map(b=><div className="history-row" key={b.id}><span>R{b.bidRevisionNo}</span><div><strong>Bid #{b.id}</strong><small>{date(b.createdAt)}</small></div><b>{money.format(b.netAmount)}</b><em>{b.isCurrent?'Current':'Superseded'}</em></div>):<Empty title="No bid history" text="Your accepted revisions will appear here."/>}</section>}{tab==='statement'&&<section className="panel"><div className="panel-head"><div><p className="eyebrow">FINAL RESULT</p><h2>Auction statement</h2></div><button className="outline" onClick={loadStatement}>Refresh</button></div>{statement.length?statement.map(s=><div className="statement-row" key={s.id}><span>#{s.rank}</span><div><strong>{s.vendorName}</strong><small>Bid #{s.bidId}</small></div><b>{money.format(s.netAmount)}</b>{s.isWinner&&<em className="winner">Winner</em>}</div>):<Empty title="Statement unavailable" text="The final statement is available after the auction closes."/>}</section>}</div>}
+function MyBids({auctions,token,userId,open,notice}:{auctions:Auction[];token:string;userId:number;open:(a:Auction)=>void;notice:(s:string)=>void}){const[rows,setRows]=useState<{a:Auction;b:Bid[]}[]>([]);useEffect(()=>{(async()=>{try{const x=await Promise.all(auctions.slice(0,30).map(async a=>({a,b:await api<Bid[]>(`/api/bids/auction/${a.id}/history?vendorId=${userId}`,token)})));setRows(x.filter(r=>r.b.length))}catch(e){notice(e instanceof Error?e.message:'Unable to load bids')}})()},[auctions,token,userId]);return <div className="stack"><div className="section-head"><div><p className="eyebrow">YOUR ACTIVITY</p><h2>Bid revisions</h2></div></div>{rows.length?rows.map(r=><section className="panel activity" key={r.a.id}><div className="activity-head"><div><span className={`status ${tone(r.a.statusName)}`}>{r.a.statusName}</span><h3>{r.a.auctionName||r.a.docNoYearly}</h3></div><button className="outline" onClick={()=>open(r.a)}>Open</button></div>{r.b.map(b=><div className="history-row" key={b.id}><span>R{b.bidRevisionNo}</span><div><strong>Bid #{b.id}</strong><small>{date(b.createdAt)}</small></div><b>{money.format(b.netAmount)}</b><em>{b.isCurrent?'Current':'Superseded'}</em></div>)}</section>):<Empty title="No bid activity" text="Accepted bids from your vendor account will appear here."/>}</div>}
+function Statements({auctions,token,open,notice}:{auctions:Auction[];token:string;open:(a:Auction)=>void;notice:(s:string)=>void}){const[rows,setRows]=useState<{a:Auction;s:Statement[]}[]>([]);useEffect(()=>{(async()=>{try{const x=await Promise.all(auctions.filter(a=>tone(a.statusName)==='closed').map(async a=>{try{return{a,s:await api<Statement[]>(`/api/auctions/${a.id}/statement`,token)}}catch{return{a,s:[]}}}));setRows(x.filter(r=>r.s.length))}catch(e){notice(e instanceof Error?e.message:'Unable to load statements')}})()},[auctions,token]);return <div className="stack"><div className="section-head"><div><p className="eyebrow">ORGANIZATION RESULTS</p><h2>Statements</h2></div></div>{rows.length?rows.map(r=><section className="panel activity" key={r.a.id}><div className="activity-head"><div><span className="status closed">Closed</span><h3>{r.a.auctionName||r.a.docNoYearly}</h3></div><button className="outline" onClick={()=>open(r.a)}>Review</button></div>{r.s.map(s=><div className="statement-row" key={s.id}><span>#{s.rank}</span><div><strong>{s.vendorName}</strong><small>Bid #{s.bidId}</small></div><b>{money.format(s.netAmount)}</b>{s.isWinner&&<em className="winner">Winner</em>}</div>)}</section>):<Empty title="No statements yet" text="Closed auction statements will appear here once generated."/>}</div>}
+function Workspace({me,api}:{me:Claims;api:string}){return <div className="stack"><section className="profile-hero"><span className="avatar large">{me.name[0]?.toUpperCase()}</span><div><p className="eyebrow">SIGNED-IN IDENTITY</p><h2>{me.name}</h2><p>{me.email||'Authenticated BidNexus account'}</p></div><span className="role">{me.role}</span></section><div className="settings-grid"><section className="panel"><p className="eyebrow">TENANT CONTEXT</p><h3>Session identity</h3><dl><div><dt>User ID</dt><dd>{me.userId||'—'}</dd></div><div><dt>Tenant ID</dt><dd>{me.tenantId||'—'}</dd></div><div><dt>Role</dt><dd>{me.role}</dd></div></dl></section><section className="panel"><p className="eyebrow">CONNECTION</p><h3>API endpoint</h3><code>{api}</code><p className="health">● Authenticated request channel</p></section></div></div>}
+function Loading(){return <div className="loading">Loading workspace…</div>}
+function Empty({title,text}:{title:string;text:string}){return <div className="empty"><b>—</b><h3>{title}</h3><p>{text}</p></div>}
 export default App
