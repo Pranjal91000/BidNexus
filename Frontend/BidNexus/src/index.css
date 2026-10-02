@@ -1,1 +1,76 @@
-html{font-size:16px;background:#f4f6f9}body{margin:0;min-width:320px;background:#f4f6f9}#root{min-height:100vh;width:100%;margin:0}*,*::before,*::after{box-sizing:border-box}button,input,textarea,select{font:inherit}button{cursor:pointer}a{color:inherit;text-decoration:none}
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+:root {
+  --bn-bg-dark: #0b0f17;
+  --bn-bg-surface: #111827;
+  --bn-bg-surface-hover: #162032;
+  --bn-bg-card: #141d2e;
+  --bn-bg-input: #0d1320;
+  
+  --bn-border-color: #1e293b;
+  --bn-border-focus: #3b82f6;
+
+  --bn-text-primary: #f8fafc;
+  --bn-text-secondary: #cbd5e1;
+  --bn-text-muted: #64748b;
+
+  --bn-accent-blue: #2563eb;
+  --bn-accent-blue-hover: #1d4ed8;
+  --bn-accent-cyan: #06b6d4;
+  
+  --bn-live-green: #10b981;
+  --bn-live-green-bg: rgba(16, 185, 129, 0.12);
+  --bn-live-green-border: rgba(16, 185, 129, 0.3);
+
+  --bn-warning-amber: #f59e0b;
+  --bn-warning-bg: rgba(245, 158, 11, 0.12);
+
+  --bn-danger-red: #ef4444;
+  --bn-danger-bg: rgba(239, 68, 68, 0.12);
+
+  --bn-font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --bn-font-mono: 'JetBrains Mono', monospace;
+
+  --bn-radius-sm: 6px;
+  --bn-radius-md: 8px;
+  --bn-radius-lg: 12px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  background-color: var(--bn-bg-dark);
+  color: var(--bn-text-primary);
+  font-family: var(--bn-font-sans);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  width: 100%;
+  height: 100%;
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bn-bg-dark);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--bn-border-color);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--bn-text-muted);
+}

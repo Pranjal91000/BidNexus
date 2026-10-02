@@ -32,6 +32,8 @@ namespace Core.Entities.Auction
             IsForwardAuction=isForwardAuction; AuctionStartTime=auctionStartTime; AuctionEndTime=auctionEndTime;
             DocAttachmentId=docAttachmentId; OpenToAll=openToAll; IsBidPriceHidden=isBidPriceHidden;
             OrganizationId=organizationId; StatusId=statusId;
+            CreatedDateTime=DateTimeOffset.UtcNow; 
+            LastModifiedDateTime=DateTimeOffset.UtcNow;
         }
 
         public Auction(int id,string auctionName,string about,string docNoYearly,DateOnly docDate,bool isForwardAuction,

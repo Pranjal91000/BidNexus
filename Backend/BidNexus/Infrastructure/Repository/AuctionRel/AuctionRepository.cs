@@ -20,6 +20,16 @@ namespace Infrastructure.Repository.AuctionRel
                 auction.TenantId = jwtHelper.GetTenantId();
             }
 
+            if (auction.CreatedDateTime == default)
+            {
+                auction.CreatedDateTime = DateTimeOffset.UtcNow;
+            }
+
+            if (auction.LastModifiedDateTime == default)
+            {
+                auction.LastModifiedDateTime = DateTimeOffset.UtcNow;
+            }
+
             if (auction.AuctionRequirements != null)
             {
                 foreach (var req in auction.AuctionRequirements)

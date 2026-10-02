@@ -1,74 +1,225 @@
-import { useEffect, useMemo, useState } from 'react'
-import { HubConnectionBuilder, LogLevel, type HubConnection } from '@microsoft/signalr'
-import './App.css'
+import { useEffect, useState, useCallback } from 'react';
+import type { Auction, Claims, Page } from './types';
+import { api, parseJwtClaims } from './services/api';
+import { Sidebar } from './components/shell/Sidebar';
+import { TopBar } from './components/shell/TopBar';
+import { MobileNav } from './components/shell/MobileNav';
+import { AuthModal } from './components/auth/AuthModal';
+import { OrganizationDashboard } from './components/dashboard/OrganizationDashboard';
+import { VendorDashboard } from './components/dashboard/VendorDashboard';
+import { AuctionRegister } from './components/auctions/AuctionRegister';
+import { LiveAuctionWorkstation } from './components/live/LiveAuctionWorkstation';
+import { MyBidsView } from './components/bids/MyBidsView';
+import { AuctionStatementsRegister } from './components/statements/AuctionStatementsRegister';
+import { WorkspaceSettings } from './components/workspace/WorkspaceSettings';
+import { ToastContainer, type ToastMessage } from './components/ui/Toast';
+import { AuctionFormModal } from './components/auctions/AuctionFormModal';
+import './App.css';
 
-type Role = 'Vendor' | 'Organization' | 'Unknown'
-type Page = 'overview' | 'auctions' | 'bids' | 'statements' | 'workspace'
-type Auction = { id:number; auctionName?:string; about?:string; docNoYearly:string; docDate:string; organization?:{name?:string}; auctionRequirements?:Requirement[]; isForwardAuction?:boolean; auctionStartTime?:string; auctionEndTime?:string; statusName?:string; openToAll?:boolean; isBidPriceHidden?:boolean }
-type Requirement = { id:number; lineNo:number; itemId?:number; item?:{itemName?:string;name?:string}; unitId?:number; unit?:{alias?:string;name?:string}; quantity:number; technicalSpecification?:string }
-type Bid = { id:number; auctionId?:number; vendorId:number; netAmount:number; basicAmount:number; taxAmount:number; createdAt:string; isCurrent:boolean; bidRevisionNo:number; vendor?:{name?:string} }
-type Statement = { id:number; auctionId:number; bidId:number; vendorId:number; vendorName:string; netAmount:number; rank:number; isWinner:boolean }
-type Claims = { role:Role; userId:number; tenantId:number; email:string; name:string }
+export function App() {
+  const [token, setToken] = useState<string>(() => localStorage.getItem('bidnexus_token') || '');
+  const [claims, setClaims] = useState<Claims>(() => parseJwtClaims(token));
+  const [page, setPage] = useState<Page>('overview');
 
-const API = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:5000' : '')
-const money = new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR',maximumFractionDigits:2})
+  const [auctions, setAuctions] = useState<Auction[]>([]);
+  const [selectedAuction, setSelectedAuction] = useState<Auction | null>(null);
+  const [loadingAuctions, setLoadingAuctions] = useState<boolean>(false);
 
-async function api<T>(path:string, token:string, options:RequestInit={}) {
-  const r=await fetch(API+path,{...options,headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`,...(options.headers||{})}})
-  if(!r.ok){const text=await r.text();let msg=text||`Request failed: ${r.status}`;try{msg=JSON.parse(text).message||msg}catch{}throw new Error(msg)}
-  return r.status===204?undefined as T:r.json() as Promise<T>
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState<boolean>(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState<boolean>(false);
+
+  // Global Toast Messages
+  const [toasts, setToasts] = useState<ToastMessage[]>([]);
+
+  const addToast = useCallback((message: string, type: 'success' | 'error' | 'warning' | 'info' = 'info', title?: string) => {
+    const id = Math.random().toString(36).substr(2, 9);
+    setToasts((prev) => [...prev, { id, message, type, title }]);
+    setTimeout(() => {
+      setToasts((prev) => prev.filter((t) => t.id !== id));
+    }, 5000);
+  }, []);
+
+  const dismissToast = (id: string) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  };
+
+  const loadAuctions = useCallback(async () => {
+    if (!token) return;
+    setLoadingAuctions(true);
+    try {
+      const data = await api.getAuctions(token, 0, 1, 100);
+      setAuctions(data || []);
+    } catch (err: any) {
+      addToast(err instanceof Error ? err.message : 'Unable to load auctions from backend.', 'error');
+    } finally {
+      setLoadingAuctions(false);
+    }
+  }, [token, addToast]);
+
+  useEffect(() => {
+    if (token) {
+      localStorage.setItem('bidnexus_token', token);
+      const parsed = parseJwtClaims(token);
+      setClaims(parsed);
+      loadAuctions();
+    } else {
+      localStorage.removeItem('bidnexus_token');
+      setClaims({ role: 'Unknown', userId: 0, tenantId: 0, email: '', name: 'Guest User' });
+    }
+  }, [token, loadAuctions]);
+
+  const handleLogout = () => {
+    localStorage.removeItem('bidnexus_token');
+    setToken('');
+    setSelectedAuction(null);
+    setPage('overview');
+    addToast('Session disconnected successfully.', 'info');
+  };
+
+  const handleOpenAuctionDesk = (auction: Auction) => {
+    setSelectedAuction(auction);
+    setPage('auctions');
+  };
+
+  // If no token, show Authentication Modal / Token Gate
+  if (!token) {
+    return <AuthModal onConnectToken={(newToken) => setToken(newToken)} />;
+  }
+
+  return (
+    <div className="bn-app-shell">
+      {/* Desktop Sidebar */}
+      <Sidebar
+        page={page}
+        setPage={setPage}
+        claims={claims}
+        signalRStatus={'CONNECTED'}
+        onLogout={handleLogout}
+        onClearSelectedAuction={() => setSelectedAuction(null)}
+      />
+
+      {/* Mobile Drawer Navigation */}
+      <MobileNav
+        isOpen={isMobileNavOpen}
+        onClose={() => setIsMobileNavOpen(false)}
+        page={page}
+        setPage={setPage}
+        claims={claims}
+        signalRStatus={'CONNECTED'}
+        onLogout={handleLogout}
+        onClearSelectedAuction={() => setSelectedAuction(null)}
+      />
+
+      {/* Main Workspace Area */}
+      <main className="bn-main-workspace">
+        <TopBar
+          page={page}
+          selectedAuctionName={selectedAuction?.auctionName || selectedAuction?.docNoYearly || null}
+          claims={claims}
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          onRefresh={loadAuctions}
+          signalRStatus={'CONNECTED'}
+          onOpenMobileNav={() => setIsMobileNavOpen(true)}
+        />
+
+        <div className="bn-page-container">
+          {/* Workstation page view when an auction is explicitly selected */}
+          {selectedAuction ? (
+            <LiveAuctionWorkstation
+              auction={selectedAuction}
+              token={token}
+              claims={claims}
+              onBack={() => setSelectedAuction(null)}
+              onShowToast={addToast}
+            />
+          ) : (
+            <>
+              {/* Overview Page (Role Adapted) */}
+              {page === 'overview' && (
+                claims.role === 'Organization' ? (
+                  <OrganizationDashboard
+                    auctions={auctions}
+                    loading={loadingAuctions}
+                    onOpenAuction={handleOpenAuctionDesk}
+                    onCreateAuction={() => { setPage('auctions'); setIsCreateModalOpen(true); }}
+                    onGoToRegister={() => setPage('auctions')}
+                  />
+                ) : (
+                  <VendorDashboard
+                    auctions={auctions}
+                    loading={loadingAuctions}
+                    onOpenAuction={handleOpenAuctionDesk}
+                    onGoToRegister={() => setPage('auctions')}
+                    onGoToMyBids={() => setPage('bids')}
+                  />
+                )
+              )}
+
+              {/* Auction Register Page */}
+              {page === 'auctions' && (
+                <AuctionRegister
+                  auctions={auctions}
+                  loading={loadingAuctions}
+                  claims={claims}
+                  token={token}
+                  onOpenAuction={handleOpenAuctionDesk}
+                  onRefresh={loadAuctions}
+                  searchQuery={searchQuery}
+                  setSearchQuery={setSearchQuery}
+                />
+              )}
+
+              {/* My Bids Page (Vendor) */}
+              {page === 'bids' && (
+                <MyBidsView
+                  auctions={auctions}
+                  token={token}
+                  claims={claims}
+                  onOpenAuction={handleOpenAuctionDesk}
+                  onShowToast={addToast}
+                />
+              )}
+
+              {/* Statements Page (Organization) */}
+              {page === 'statements' && (
+                <AuctionStatementsRegister
+                  auctions={auctions}
+                  token={token}
+                  onOpenAuction={handleOpenAuctionDesk}
+                  onShowToast={addToast}
+                />
+              )}
+
+              {/* Workspace Settings Page */}
+              {page === 'workspace' && (
+                <WorkspaceSettings claims={claims} token={token} />
+              )}
+            </>
+          )}
+        </div>
+      </main>
+
+      {/* Global Toast Container */}
+      <ToastContainer toasts={toasts} onDismiss={dismissToast} />
+
+      {/* Global Create Auction Modal Triggered from Dashboard */}
+      {isCreateModalOpen && (
+        <AuctionFormModal
+          isOpen={isCreateModalOpen}
+          onClose={() => setIsCreateModalOpen(false)}
+          onSubmit={async (data) => {
+            await api.createAuction(token, data);
+            loadAuctions();
+            addToast('Auction created successfully', 'success');
+          }}
+          token={token}
+          userOrgId={claims.userId}
+        />
+      )}
+    </div>
+  );
 }
-function claims(token:string):Claims {
-  try{const p=JSON.parse(atob(token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));const role=p.role||p['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'];return {role:role==='Vendor'||role==='Organization'?role:'Unknown',userId:+(p.userId||0),tenantId:+(p.tenantId||0),email:p.email||'',name:p.name||p.unique_name||p.email||'BidNexus user'}}catch{return {role:'Unknown',userId:0,tenantId:0,email:'',name:'BidNexus user'}}
-}
-function tone(s=''){s=s.toLowerCase();return s.includes('active')||s.includes('live')?'live':s.includes('close')||s.includes('complete')?'closed':'scheduled'}
-function date(v?:string){if(!v)return '—';const d=new Date(v);return isNaN(d.getTime())?v:d.toLocaleString([], {dateStyle:'medium',timeStyle:'short'})}
 
-function App(){
- const [token,setToken]=useState(()=>localStorage.getItem('bidnexus_token')||'')
- const [me,setMe]=useState<Claims>(()=>claims(localStorage.getItem('bidnexus_token')||''))
- const [page,setPage]=useState<Page>('overview'),[auctions,setAuctions]=useState<Auction[]>([]),[selected,setSelected]=useState<Auction|null>(null)
- const [notice,setNotice]=useState(''),[loading,setLoading]=useState(false),[search,setSearch]=useState('')
- useEffect(()=>{if(token){localStorage.setItem('bidnexus_token',token);setMe(claims(token));load()}},[token])
- async function load(){setLoading(true);try{setAuctions(await api<Auction[]>('/api/auctions?pageNo=1&pageSize=100',token));setNotice('')}catch(e){setNotice(e instanceof Error?e.message:'Unable to load auctions')}finally{setLoading(false)}}
- async function open(a:Auction){setSelected(a);setPage('auctions')}
- function logout(){localStorage.removeItem('bidnexus_token');setToken('');setSelected(null)}
- const filtered=useMemo(()=>auctions.filter(a=>`${a.docNoYearly} ${a.auctionName||''} ${a.organization?.name||''}`.toLowerCase().includes(search.toLowerCase())),[auctions,search])
- if(!token)return <TokenGate connect={setToken}/>
- return <div className="app-shell">
-  <aside className="sidebar">
-   <div className="brand"><b>B</b><span>Bid<span>Nexus</span></span></div>
-   <div className="identity"><strong>{me.name}</strong><small>{me.role} workspace</small></div>
-   <nav><Nav active={page==='overview'} icon="⌂" click={()=>{setPage('overview');setSelected(null)}}>Overview</Nav><Nav active={page==='auctions'} icon="◈" click={()=>{setPage('auctions');setSelected(null)}}>Auctions</Nav>{me.role==='Vendor'&&<Nav active={page==='bids'} icon="↗" click={()=>{setPage('bids');setSelected(null)}}>My bids</Nav>}{me.role==='Organization'&&<Nav active={page==='statements'} icon="▤" click={()=>{setPage('statements');setSelected(null)}}>Statements</Nav>}<Nav active={page==='workspace'} icon="⚙" click={()=>{setPage('workspace');setSelected(null)}}>Workspace</Nav></nav>
-   <div className="side-bottom"><span className="connection"><i/> API connected</span><button onClick={logout}>↪ Disconnect</button></div>
-  </aside>
-  <main className="workspace">
-   <header><div><p className="eyebrow">PROCUREMENT CONTROL</p><h1>{({overview:'Operations overview',auctions:'Auction register',bids:'My bidding activity',statements:'Auction statements',workspace:'Workspace'})[page]}</h1></div><div className="header-actions"><span className="sync"><i/> Secure session</span><button onClick={load}>↻</button><span className="avatar">{me.name[0]?.toUpperCase()}</span></div></header>
-   {notice&&<div className="notice">{notice}<button onClick={()=>setNotice('')}>×</button></div>}
-   {page==='overview'&&<Overview auctions={auctions} loading={loading} role={me.role} open={open} go={()=>setPage('auctions')}/>}
-   {page==='auctions'&&(selected?<Desk auction={selected} token={token} me={me} back={()=>setSelected(null)} notice={setNotice} refresh={()=>open(selected)}/>:<Register auctions={filtered} search={search} setSearch={setSearch} loading={loading} open={open}/>)}
-   {page==='bids'&&<MyBids auctions={auctions} token={token} userId={me.userId} open={open} notice={setNotice}/>}
-   {page==='statements'&&<Statements auctions={auctions} token={token} open={open} notice={setNotice}/>}
-   {page==='workspace'&&<Workspace me={me} api={API||'same origin'}/>}
-  </main>
- </div>
-}
-
-function TokenGate({connect}:{connect:(s:string)=>void}){const[v,setV]=useState('');return <main className="auth-shell"><div className="auth-card"><div className="brand"><b>B</b><span>Bid<span>Nexus</span></span></div><p className="eyebrow">SECURE WORKSPACE</p><h1>Connect your procurement desk.</h1><p>Paste a BidNexus access token. It is stored locally in this browser and sent only with authenticated API requests.</p><label>Access token</label><textarea value={v} onChange={e=>setV(e.target.value)} placeholder="eyJhbGciOi..." autoFocus/><button className="primary" disabled={!v.trim()} onClick={()=>connect(v.trim())}>Enter workspace <span>→</span></button></div></main>}
-function Nav({active,icon,click,children}:{active:boolean;icon:string;click:()=>void;children:string}){return <button className={active?'nav active':'nav'} onClick={click}><span>{icon}</span>{children}</button>}
-function Overview({auctions,loading,role,open,go}:{auctions:Auction[];loading:boolean;role:Role;open:(a:Auction)=>void;go:()=>void}){const live=auctions.filter(a=>tone(a.statusName)==='live'),scheduled=auctions.filter(a=>tone(a.statusName)==='scheduled'),closed=auctions.filter(a=>tone(a.statusName)==='closed');return <div className="stack"><section className="welcome"><div><p className="eyebrow">TODAY'S DESK</p><h2>{role==='Vendor'?'Find the next opportunity.':'Keep every auction moving.'}</h2><p>Monitor auctions, inspect requirements and move from market activity to decisions in one workspace.</p></div><button className="primary" onClick={go}>Open auction register →</button></section><div className="stats"><Stat n={auctions.length} t="Visible auctions"/><Stat n={live.length} t="Live now" green/><Stat n={scheduled.length} t="Scheduled"/><Stat n={closed.length} t="Closed"/></div><div className="section-head"><div><p className="eyebrow">LIVE MARKET</p><h2>Active auctions</h2></div><button className="text-btn" onClick={go}>View all →</button></div>{loading?<Loading/>:live.length?<div className="grid">{live.slice(0,3).map(a=><Card key={a.id} a={a} open={open}/>)}</div>:<Empty title="No live auctions" text="Active auctions will appear here when the engine marks them live."/>}</div>}
-function Stat({n,t,green}:{n:number;t:string;green?:boolean}){return <div className="stat"><span className={green?'stat-icon green':'stat-icon'}>◉</span><div><small>{t}</small><strong>{n}</strong></div></div>}
-function Register({auctions,search,setSearch,loading,open}:{auctions:Auction[];search:string;setSearch:(s:string)=>void;loading:boolean;open:(a:Auction)=>void}){return <div className="stack"><div className="toolbar"><div><p className="eyebrow">AUCTION REGISTER</p><h2>Opportunities</h2></div><div className="search">⌕<input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search auctions"/></div></div>{loading?<Loading/>:auctions.length?<div className="grid">{auctions.map(a=><Card key={a.id} a={a} open={open}/>)}</div>:<Empty title="No auctions found" text="Try another search term."/>}</div>}
-function Card({a,open}:{a:Auction;open:(a:Auction)=>void}){return <button className="card" onClick={()=>open(a)}><div className="card-top"><span className={`status ${tone(a.statusName)}`}>{a.statusName||'Scheduled'}</span><span>#{a.id}</span></div><small className="type">{a.isForwardAuction?'FORWARD':'REVERSE'} AUCTION</small><h3>{a.auctionName||a.docNoYearly}</h3><p>{a.organization?.name||a.docNoYearly}</p><div className="card-meta"><span>◷ {date(a.auctionStartTime)}</span><span>{a.auctionRequirements?.length||0} lines</span></div><div className="card-foot"><span>{a.docNoYearly}</span><b>Open →</b></div></button>}
-function Desk({auction,token,me,back,notice,refresh}:{auction:Auction;token:string;me:Claims;back:()=>void;notice:(s:string)=>void;refresh:()=>void}){const[bids,setBids]=useState<Bid[]>([]),[history,setHistory]=useState<Bid[]>([]),[statement,setStatement]=useState<Statement[]>([]),[amount,setAmount]=useState(''),[tab,setTab]=useState('market'),[sending,setSending]=useState(false);const active=tone(auction.statusName)==='live'
- useEffect(()=>{(async()=>{try{setBids(await api<Bid[]>(`/api/bids/auction/${auction.id}/leaderboard`,token));if(me.role==='Vendor')setHistory(await api<Bid[]>(`/api/bids/auction/${auction.id}/history?vendorId=${me.userId}`,token))}catch(e){notice(e instanceof Error?e.message:'Unable to load market')}})()},[auction.id])
- useEffect(()=>{let c:HubConnection|undefined;(async()=>{c=new HubConnectionBuilder().withUrl(`${API}/hubs/auction`,{accessTokenFactory:()=>token}).withAutomaticReconnect().configureLogging(LogLevel.Warning).build();c.on('BidAccepted',(x:{AuctionId:number})=>{if(x.AuctionId===auction.id){notice('New bid accepted in this auction.');refresh()}});c.on('AuctionClosed',()=>{notice('Auction closed.');refresh()});try{await c.start();await c.invoke('JoinAuction',auction.id)}catch{}})();return()=>{c?.invoke('LeaveAuction',auction.id).catch(()=>{});c?.stop()}},[auction.id,token])
- async function bid(){const n=Number(amount);if(!n||n<0)return notice('Enter a valid bid amount.');setSending(true);try{await api('/api/bids',token,{method:'POST',body:JSON.stringify({auctionId:auction.id,vendorId:me.userId,basicAmount:n,taxAmount:0,discountAmount:0,netAmount:n,mainBidId:null,bidRevisionNo:0,bidDetails:(auction.auctionRequirements||[]).map(r=>({auctionRequirementId:r.id,rate:n/Math.max(r.quantity,1),baseAmount:n,netAmount:n,taxes:[]}))})});setAmount('');notice('Bid accepted by the auction engine.');refresh()}catch(e){notice(e instanceof Error?e.message:'Bid rejected')}finally{setSending(false)}}
- async function loadStatement(){try{setStatement(await api<Statement[]>(`/api/auctions/${auction.id}/statement`,token))}catch(e){notice(e instanceof Error?e.message:'Statement unavailable')}}
- return <div className="stack"><button className="back" onClick={back}>← Back to auctions</button><section className="auction-hero"><div><div className="hero-kicker"><span className={`status ${tone(auction.statusName)}`}>{auction.statusName||'Scheduled'}</span><span>{auction.isForwardAuction?'Forward':'Reverse'} auction</span><span>#{auction.id}</span></div><h2>{auction.auctionName||auction.docNoYearly}</h2><p>{auction.about||auction.organization?.name||'Procurement auction'} · {auction.docNoYearly}</p></div><div className="hero-time"><small>START</small><b>{date(auction.auctionStartTime)}</b><small>END</small><b>{date(auction.auctionEndTime)}</b></div></section>{me.role==='Vendor'&&active&&<section className="bid-command"><div><p className="eyebrow">BID COMMAND</p><h2>{auction.isForwardAuction?'Submit your offer':'Submit your lowest offer'}</h2><p>Server-side validation and calculations remain authoritative.</p></div><div className="bid-box"><span>₹</span><input value={amount} type="number" min="0" onChange={e=>setAmount(e.target.value)} placeholder="0.00"/><button className="primary" disabled={sending} onClick={bid}>{sending?'Submitting…':'Submit bid'} →</button></div></section>}<div className="tabs"><button className={tab==='market'?'active':''} onClick={()=>setTab('market')}>Live market <i>{bids.length}</i></button><button className={tab==='req'?'active':''} onClick={()=>setTab('req')}>Requirements <i>{auction.auctionRequirements?.length||0}</i></button>{me.role==='Vendor'&&<button className={tab==='history'?'active':''} onClick={()=>setTab('history')}>My revisions <i>{history.length}</i></button>}{me.role==='Organization'&&<button className={tab==='statement'?'active':''} onClick={()=>{setTab('statement');loadStatement()}}>Statement</button>}</div>{tab==='market'&&<section className="panel"><div className="panel-head"><div><p className="eyebrow">LIVE MARKET</p><h2>Leaderboard</h2></div><span className="live-pill">● REALTIME</span></div>{bids.length?bids.slice(0,12).map((b,i)=><div className="leader" key={b.id}><b>#{i+1}</b><div><strong>{b.vendor?.name||`Vendor #${b.vendorId}`}</strong><small>Revision {b.bidRevisionNo} · {date(b.createdAt)}</small></div><strong>{money.format(b.netAmount)}</strong></div>):<Empty title="No bids yet" text="Accepted bids will appear here."/>}</section>}{tab==='req'&&<section className="panel"><div className="panel-head"><div><p className="eyebrow">AUCTION SCOPE</p><h2>Requirements</h2></div></div>{(auction.auctionRequirements||[]).map(r=><div className="requirement" key={r.id}><span>{String(r.lineNo).padStart(2,'0')}</span><div><strong>{r.item?.itemName||r.item?.name||`Item #${r.itemId||r.id}`}</strong><small>{r.technicalSpecification||'No technical specification provided'}</small></div><b>{r.quantity} {r.unit?.alias||r.unit?.name||`Unit #${r.unitId||''}`}</b></div>)}</section>}{tab==='history'&&<section className="panel"><div className="panel-head"><div><p className="eyebrow">YOUR ACTIVITY</p><h2>Bid revisions</h2></div></div>{history.length?history.map(b=><div className="history-row" key={b.id}><span>R{b.bidRevisionNo}</span><div><strong>Bid #{b.id}</strong><small>{date(b.createdAt)}</small></div><b>{money.format(b.netAmount)}</b><em>{b.isCurrent?'Current':'Superseded'}</em></div>):<Empty title="No bid history" text="Your accepted revisions will appear here."/>}</section>}{tab==='statement'&&<section className="panel"><div className="panel-head"><div><p className="eyebrow">FINAL RESULT</p><h2>Auction statement</h2></div><button className="outline" onClick={loadStatement}>Refresh</button></div>{statement.length?statement.map(s=><div className="statement-row" key={s.id}><span>#{s.rank}</span><div><strong>{s.vendorName}</strong><small>Bid #{s.bidId}</small></div><b>{money.format(s.netAmount)}</b>{s.isWinner&&<em className="winner">Winner</em>}</div>):<Empty title="Statement unavailable" text="The final statement is available after the auction closes."/>}</section>}</div>}
-function MyBids({auctions,token,userId,open,notice}:{auctions:Auction[];token:string;userId:number;open:(a:Auction)=>void;notice:(s:string)=>void}){const[rows,setRows]=useState<{a:Auction;b:Bid[]}[]>([]);useEffect(()=>{(async()=>{try{const x=await Promise.all(auctions.slice(0,30).map(async a=>({a,b:await api<Bid[]>(`/api/bids/auction/${a.id}/history?vendorId=${userId}`,token)})));setRows(x.filter(r=>r.b.length))}catch(e){notice(e instanceof Error?e.message:'Unable to load bids')}})()},[auctions,token,userId]);return <div className="stack"><div className="section-head"><div><p className="eyebrow">YOUR ACTIVITY</p><h2>Bid revisions</h2></div></div>{rows.length?rows.map(r=><section className="panel activity" key={r.a.id}><div className="activity-head"><div><span className={`status ${tone(r.a.statusName)}`}>{r.a.statusName}</span><h3>{r.a.auctionName||r.a.docNoYearly}</h3></div><button className="outline" onClick={()=>open(r.a)}>Open</button></div>{r.b.map(b=><div className="history-row" key={b.id}><span>R{b.bidRevisionNo}</span><div><strong>Bid #{b.id}</strong><small>{date(b.createdAt)}</small></div><b>{money.format(b.netAmount)}</b><em>{b.isCurrent?'Current':'Superseded'}</em></div>)}</section>):<Empty title="No bid activity" text="Accepted bids from your vendor account will appear here."/>}</div>}
-function Statements({auctions,token,open,notice}:{auctions:Auction[];token:string;open:(a:Auction)=>void;notice:(s:string)=>void}){const[rows,setRows]=useState<{a:Auction;s:Statement[]}[]>([]);useEffect(()=>{(async()=>{try{const x=await Promise.all(auctions.filter(a=>tone(a.statusName)==='closed').map(async a=>{try{return{a,s:await api<Statement[]>(`/api/auctions/${a.id}/statement`,token)}}catch{return{a,s:[]}}}));setRows(x.filter(r=>r.s.length))}catch(e){notice(e instanceof Error?e.message:'Unable to load statements')}})()},[auctions,token]);return <div className="stack"><div className="section-head"><div><p className="eyebrow">ORGANIZATION RESULTS</p><h2>Statements</h2></div></div>{rows.length?rows.map(r=><section className="panel activity" key={r.a.id}><div className="activity-head"><div><span className="status closed">Closed</span><h3>{r.a.auctionName||r.a.docNoYearly}</h3></div><button className="outline" onClick={()=>open(r.a)}>Review</button></div>{r.s.map(s=><div className="statement-row" key={s.id}><span>#{s.rank}</span><div><strong>{s.vendorName}</strong><small>Bid #{s.bidId}</small></div><b>{money.format(s.netAmount)}</b>{s.isWinner&&<em className="winner">Winner</em>}</div>)}</section>):<Empty title="No statements yet" text="Closed auction statements will appear here once generated."/>}</div>}
-function Workspace({me,api}:{me:Claims;api:string}){return <div className="stack"><section className="profile-hero"><span className="avatar large">{me.name[0]?.toUpperCase()}</span><div><p className="eyebrow">SIGNED-IN IDENTITY</p><h2>{me.name}</h2><p>{me.email||'Authenticated BidNexus account'}</p></div><span className="role">{me.role}</span></section><div className="settings-grid"><section className="panel"><p className="eyebrow">TENANT CONTEXT</p><h3>Session identity</h3><dl><div><dt>User ID</dt><dd>{me.userId||'—'}</dd></div><div><dt>Tenant ID</dt><dd>{me.tenantId||'—'}</dd></div><div><dt>Role</dt><dd>{me.role}</dd></div></dl></section><section className="panel"><p className="eyebrow">CONNECTION</p><h3>API endpoint</h3><code>{api}</code><p className="health">● Authenticated request channel</p></section></div></div>}
-function Loading(){return <div className="loading">Loading workspace…</div>}
-function Empty({title,text}:{title:string;text:string}){return <div className="empty"><b>—</b><h3>{title}</h3><p>{text}</p></div>}
-export default App
+export default App;
