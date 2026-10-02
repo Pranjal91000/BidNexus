@@ -125,9 +125,10 @@ export async function request<T>(path: string, token?: string, options: RequestI
 // Api helper methods
 export const api = {
   // Authentication
-  login: async (username: string, password: string) => {
-    return request<{ token?: string; accessToken?: string;[key: string]: any }>(`/login?Username=${username}&Password=${password}`, undefined, {
-      method: 'POST'
+  login: async (Username: string, Password: string) => {
+    return request<{ token?: string; accessToken?: string;[key: string]: any }>(`/login`, undefined, {
+      method: 'POST',
+      body: JSON.stringify({ Username, Password }),
     });
   },
 

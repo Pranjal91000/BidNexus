@@ -9,7 +9,7 @@ namespace API.Controllers.Authflow
         private readonly IAuthService _authService = authService;
 
         [HttpPost("login")]
-        public async Task<IActionResult> Login(LoginInputModel request)
+        public async Task<IActionResult> Login([FromBody] LoginInputModel request)
         {
             var result = await _authService.Login(request);
             return Ok(result);
