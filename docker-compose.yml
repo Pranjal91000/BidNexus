@@ -1,0 +1,55 @@
+services:
+  database:
+    image: postgres:17-alpine
+    container_name: bidnexus-database
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-BidNexus}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    volumes:
+      - bidnexus-postgres:/var/lib/postgresql/data
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-BidNexus}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  api:
+    build:
+      context: ./Backend/BidNexus
+      dockerfile: Dockerfile
+    container_name: bidnexus-api
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__DefaultConnection: Host=database;Port=5432;Database=${POSTGRES_DB:-BidNexus};Username=${POSTGRES_USER:-postgres};Password=${POSTGRES_PASSWORD:-postgres}
+      Jwt__Key: ${JWT_KEY:-change-this-in-production}
+      Jwt__Issuer: ${JWT_ISSUER:-BidNexus}
+      Jwt__Audience: ${JWT_AUDIENCE:-BidNexusClient}
+      Jwt__ExpiryMinutes: ${JWT_EXPIRY_MINUTES:-30}
+      Cors__AllowedOrigins__0: ${FRONTEND_ORIGIN:-http://localhost:8080}
+      HttpsRedirection__Enabled: "false"
+    depends_on:
+      database:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./Frontend/BidNexus
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL:-}
+    container_name: bidnexus-frontend
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-8080}:8080"
+    depends_on:
+      - api
+
+volumes:
+  bidnexus-postgres:
