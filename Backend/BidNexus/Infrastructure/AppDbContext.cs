@@ -52,12 +52,6 @@ public class AppDbContext(
     {
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
 
-        // Apply entity configurations requiring IJwtHelperService
-        modelBuilder.ApplyConfiguration(new UnitEntityConfiguration(_jwtHelper));
-        modelBuilder.ApplyConfiguration(new ItemEntityConfiguration(_jwtHelper));
-        modelBuilder.ApplyConfiguration(new ItemUnitMappingEntityConfiguration(_jwtHelper));
-        modelBuilder.ApplyConfiguration(new TaxMasterEntityConfiguration(_jwtHelper));
-
         base.OnModelCreating(modelBuilder);
     }
 }

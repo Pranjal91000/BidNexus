@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260927125717_Initial")]
-    partial class Initial
+    [Migration("20261002115536_initial")]
+    partial class initial
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -33,8 +33,19 @@ namespace Infrastructure.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("About")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<DateTimeOffset>("AuctionEndTime")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("AuctionIntentSubmissionDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("AuctionName")
+                        .IsRequired()
+                        .HasColumnType("text");
 
                     b.Property<DateTimeOffset>("AuctionStartTime")
                         .HasColumnType("timestamp with time zone");
@@ -156,13 +167,18 @@ namespace Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("AuctionId")
-                        .IsUnique();
-
                     b.HasIndex("BidId")
                         .IsUnique();
 
-                    b.HasIndex("VendorId")
+                    b.HasIndex("VendorId");
+
+                    b.HasIndex("AuctionId", "BidId")
+                        .IsUnique();
+
+                    b.HasIndex("AuctionId", "Rank")
+                        .IsUnique();
+
+                    b.HasIndex("AuctionId", "VendorId")
                         .IsUnique();
 
                     b.ToTable("AuctionStatement", "AuctionRel");
@@ -197,7 +213,7 @@ namespace Infrastructure.Migrations
                     b.Property<bool>("IsCurrent")
                         .HasColumnType("boolean");
 
-                    b.Property<long>("MainBidId")
+                    b.Property<long?>("MainBidId")
                         .HasColumnType("bigint");
 
                     b.Property<decimal>("NetAmount")
@@ -746,9 +762,10 @@ namespace Infrastructure.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
-                    b.Property<string>("Password")
+                    b.Property<string>("PasswordHash")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasColumnType("text")
+                        .HasColumnName("Password");
 
                     b.Property<int>("ReferenceId")
                         .HasColumnType("integer");
@@ -887,7 +904,7 @@ namespace Infrastructure.Migrations
                         .HasForeignKey("AuctionId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
-                        .HasConstraintName("FK_AuctionRequirement_AuctioId");
+                        .HasConstraintName("FK_AuctionRequirement_AuctionId");
 
                     b.HasOne("Core.Entities.Master.Item", "Item")
                         .WithMany()
@@ -913,8 +930,8 @@ namespace Infrastructure.Migrations
             modelBuilder.Entity("Core.Entities.Auction.AuctionStatement", b =>
                 {
                     b.HasOne("Core.Entities.Auction.Auction", "Auction")
-                        .WithOne("AuctionStatement")
-                        .HasForeignKey("Core.Entities.Auction.AuctionStatement", "AuctionId")
+                        .WithMany("AuctionStatements")
+                        .HasForeignKey("AuctionId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("FK_AuctionStatement_AuctionId");
@@ -927,8 +944,8 @@ namespace Infrastructure.Migrations
                         .HasConstraintName("FK_AuctionStatement_BidId");
 
                     b.HasOne("Core.Entities.TenantRelated.Vendor", "Vendor")
-                        .WithOne()
-                        .HasForeignKey("Core.Entities.Auction.AuctionStatement", "VendorId")
+                        .WithMany()
+                        .HasForeignKey("VendorId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("FK_AuctionStatement_VendorId");
@@ -953,7 +970,6 @@ namespace Infrastructure.Migrations
                         .WithMany()
                         .HasForeignKey("MainBidId")
                         .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired()
                         .HasConstraintName("FK_Bid_MainBidId");
 
                     b.HasOne("Core.Entities.TenantRelated.Vendor", "Vendor")
@@ -1187,8 +1203,7 @@ namespace Infrastructure.Migrations
                 {
                     b.Navigation("AuctionRequirements");
 
-                    b.Navigation("AuctionStatement")
-                        .IsRequired();
+                    b.Navigation("AuctionStatements");
 
                     b.Navigation("Bids");
 

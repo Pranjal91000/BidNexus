@@ -7,16 +7,15 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Infrastructure.EntityConfigurations.Master
 {
-    public class ItemEntityConfiguration(IJwtHelperService jwtHelperService) : IEntityTypeConfiguration<Item>
+    public class ItemEntityConfiguration() : IEntityTypeConfiguration<Item>
     {
-        private readonly IJwtHelperService _jwtHelper = jwtHelperService;
 
         public void Configure(EntityTypeBuilder<Item> builder)
         {
             builder.ToTable("Item", "Master");
             MasterBaseEntityConfiguration.Configure(builder);
             builder.HasIndex(x => new { x.TenantId, x.Code }).IsUnique();
-            builder.HasQueryFilter(x => x.TenantId == _jwtHelper.GetTenantId());
+    
 
             builder.Property(x => x.CategoryId).IsRequired();
             builder.Property(x => x.ItemDescription).IsRequired(false);

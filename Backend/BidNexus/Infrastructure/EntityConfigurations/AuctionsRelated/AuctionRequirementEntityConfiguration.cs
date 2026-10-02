@@ -6,9 +6,8 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Infrastructure.EntityConfigurations.AuctionsRelated
 {
-    public class AuctionRequirementEntityConfiguration(IJwtHelperService jwtHelperService): IEntityTypeConfiguration<AuctionRequirement>
+    public class AuctionRequirementEntityConfiguration(): IEntityTypeConfiguration<AuctionRequirement>
     {
-        private readonly IJwtHelperService _jwtHelper = jwtHelperService;
 
         public void Configure(EntityTypeBuilder<AuctionRequirement> builder)
         {
@@ -45,7 +44,7 @@ namespace Infrastructure.EntityConfigurations.AuctionsRelated
             builder.HasOne(x => x.Auction)
                 .WithMany(x => x.AuctionRequirements)
                 .HasForeignKey(x => x.AuctionId)
-                .HasConstraintName("FK_AuctionRequirement_AuctioId")
+                .HasConstraintName("FK_AuctionRequirement_AuctionId")
                 .OnDelete(DeleteBehavior.Cascade);
 
         }

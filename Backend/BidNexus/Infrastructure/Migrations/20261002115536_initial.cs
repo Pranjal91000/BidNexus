@@ -7,7 +7,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class Initial : Migration
+    public partial class initial : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -348,7 +348,10 @@ namespace Infrastructure.Migrations
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    About = table.Column<string>(type: "text", nullable: false),
+                    AuctionName = table.Column<string>(type: "text", nullable: false),
                     IsForwardAuction = table.Column<bool>(type: "boolean", nullable: false),
+                    AuctionIntentSubmissionDate = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
                     AuctionStartTime = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     AuctionEndTime = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     DocAttachmentId = table.Column<Guid>(type: "uuid", nullable: true),
@@ -401,7 +404,7 @@ namespace Infrastructure.Migrations
                 {
                     table.PrimaryKey("PK_AuctionRequirement", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_AuctionRequirement_AuctioId",
+                        name: "FK_AuctionRequirement_AuctionId",
                         column: x => x.AuctionId,
                         principalSchema: "AuctionRel",
                         principalTable: "Auction",
@@ -431,7 +434,7 @@ namespace Infrastructure.Migrations
                     Id = table.Column<long>(type: "bigint", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     IsCurrent = table.Column<bool>(type: "boolean", nullable: false),
-                    MainBidId = table.Column<long>(type: "bigint", nullable: false),
+                    MainBidId = table.Column<long>(type: "bigint", nullable: true),
                     AuctionId = table.Column<int>(type: "integer", nullable: false),
                     VendorId = table.Column<int>(type: "integer", nullable: false),
                     BasicAmount = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: false),
@@ -720,10 +723,24 @@ namespace Infrastructure.Migrations
                 column: "UnitId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_AuctionStatement_AuctionId",
+                name: "IX_AuctionStatement_AuctionId_BidId",
                 schema: "AuctionRel",
                 table: "AuctionStatement",
-                column: "AuctionId",
+                columns: new[] { "AuctionId", "BidId" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AuctionStatement_AuctionId_Rank",
+                schema: "AuctionRel",
+                table: "AuctionStatement",
+                columns: new[] { "AuctionId", "Rank" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AuctionStatement_AuctionId_VendorId",
+                schema: "AuctionRel",
+                table: "AuctionStatement",
+                columns: new[] { "AuctionId", "VendorId" },
                 unique: true);
 
             migrationBuilder.CreateIndex(
@@ -737,8 +754,7 @@ namespace Infrastructure.Migrations
                 name: "IX_AuctionStatement_VendorId",
                 schema: "AuctionRel",
                 table: "AuctionStatement",
-                column: "VendorId",
-                unique: true);
+                column: "VendorId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Bid_AuctionId",
