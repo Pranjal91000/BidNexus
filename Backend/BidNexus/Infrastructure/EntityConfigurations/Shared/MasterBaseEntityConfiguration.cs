@@ -10,8 +10,8 @@ namespace Infrastructure.EntityConfigurations.Shared
             BaseEntityConfiguration.Configure(builder);
             builder.Property(x => x.Name).IsRequired();
             builder.Property(x => x.Code).IsRequired();
-            builder.Property(x => x.CreatedDateTime).ValueGeneratedOnAdd();
-            builder.Property(x => x.LastModifiedDateTime).ValueGeneratedOnAddOrUpdate();
+            builder.Property(x => x.CreatedDateTime).IsRequired();
+            builder.Property(x => x.LastModifiedDateTime).IsRequired();
             builder.Property(x => x.StatusId).IsRequired();
             builder.Property(x => x.StatusRemarks).IsRequired(false);
         }
