@@ -51,6 +51,19 @@ app.UseStaticFiles();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+    // Ensure PostgreSQL schemas exist before EF Core applies the migrations.
+    // This is required for a fresh Railway-managed database.
+    const string createSchemasSql = """
+        CREATE SCHEMA IF NOT EXISTS "GlobalData";
+        CREATE SCHEMA IF NOT EXISTS "Master";
+        CREATE SCHEMA IF NOT EXISTS "Tenant";
+        CREATE SCHEMA IF NOT EXISTS "Auth";
+        CREATE SCHEMA IF NOT EXISTS "AuctionRel";
+        CREATE SCHEMA IF NOT EXISTS "Utilities";
+        """;
+
+    await db.Database.ExecuteSqlRawAsync(createSchemasSql);
     await db.Database.MigrateAsync();
 }
 
