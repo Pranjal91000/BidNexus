@@ -1,4 +1,5 @@
 using Core.Abstraction.AuctionRelated;
+using Core.Abstraction.Services;
 using Core.Entities.Auction;
 using Core.Models.AuctionRelated;
 using Core.Models.GlobalData;
@@ -6,9 +7,12 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.Repository.AuctionRel
 {
-    public class BiddingRepository(AppDbContext appDbContext) : IBidRepositoy
+    public class BiddingRepository(AppDbContext appDbContext, IJwtHelperService jwtHelperService) : IBidRepository
     {
         private readonly AppDbContext _appDbContext = appDbContext;
+        private readonly IJwtHelperService _jwtHelper = jwtHelperService;
+
+        private int CurrentTenantId => _jwtHelper.GetTenantId();
 
         public async Task<BidProcessingContext> GetBidProcessingContextAsync(
             int auctionId,
@@ -23,7 +27,7 @@ namespace Infrastructure.Repository.AuctionRel
         {
             var auctionForTenant = await _appDbContext.Auctions
                 .AsNoTracking()
-                .Where(a => a.Id == auctionId && a.Organization.TenantId == tenantId)
+                .Where(a => a.Id == auctionId)
                 .Select(a => new { a.Id, a.OpenToAll })
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -111,43 +115,34 @@ namespace Infrastructure.Repository.AuctionRel
             };
         }
 
-        public async Task<BidResponseDataModel> ProcessBidAsync(
-            Bid bid,
-            int tenantId,
-            CancellationToken cancellationToken = default)
+        public async Task<BidResponseDataModel> ProcessBidAsync(Bid currbid, long? invalidateBidId, CancellationToken cancellationToken = default)
         {
-            await using var transaction =
-                await _appDbContext.Database.BeginTransactionAsync(cancellationToken);
+            await using var transaction = await _appDbContext.Database.BeginTransactionAsync(cancellationToken);
 
             try
             {
-                var previousBid = await _appDbContext.Bids
-                    .Where(b =>
-                        b.AuctionId == bid.AuctionId &&
-                        b.VendorId == bid.VendorId &&
-                        b.IsCurrent &&
-                        b.Auction.Organization.TenantId == tenantId)
-                    .OrderByDescending(b => b.BidRevisionNo)
-                    .FirstOrDefaultAsync(cancellationToken);
+                
+                var bidToInvalidate = invalidateBidId.HasValue
+                    ? await _appDbContext.Bids.FindAsync([invalidateBidId.Value], cancellationToken)
+                    : null;
 
-                if (previousBid != null)
+                if (bidToInvalidate != null)
                 {
-                    previousBid.IsCurrent = false;
-                    bid.MainBidId = previousBid.MainBidId;
-                    bid.BidRevisionNo = checked((short)(previousBid.BidRevisionNo + 1));
+                    currbid.MainBidId = bidToInvalidate.MainBidId ?? bidToInvalidate.Id;
+                    currbid.BidRevisionNo = (short)(bidToInvalidate.BidRevisionNo + 1);
+                }
+
+                await _appDbContext.Bids.AddAsync(currbid, cancellationToken);
+                await _appDbContext.SaveChangesAsync(cancellationToken);
+
+                if (bidToInvalidate == null)
+                {
+                    currbid.InitializeAsMainBid();
+                    await _appDbContext.SaveChangesAsync(cancellationToken);
                 }
                 else
                 {
-                    bid.BidRevisionNo = 1;
-                    bid.MainBidId = null;
-                }
-
-                await _appDbContext.Bids.AddAsync(bid, cancellationToken);
-                await _appDbContext.SaveChangesAsync(cancellationToken);
-
-                if (previousBid == null)
-                {
-                    bid.InitializeAsMainBid();
+                    bidToInvalidate.IsCurrent = false;
                     await _appDbContext.SaveChangesAsync(cancellationToken);
                 }
 
@@ -155,12 +150,12 @@ namespace Infrastructure.Repository.AuctionRel
 
                 return new BidResponseDataModel
                 {
-                    Id = bid.Id,
-                    MainBidId = bid.MainBidId,
-                    AuctionId = bid.AuctionId,
-                    VendorId = bid.VendorId,
-                    NetAmount = bid.NetAmount,
-                    BidRevisionNo = bid.BidRevisionNo
+                    Id = currbid.Id,
+                    MainBidId = currbid.MainBidId,
+                    AuctionId = currbid.AuctionId,
+                    VendorId = currbid.VendorId,
+                    NetAmount = currbid.NetAmount,
+                    BidRevisionNo = currbid.BidRevisionNo
                 };
             }
             catch
@@ -171,6 +166,19 @@ namespace Infrastructure.Repository.AuctionRel
         }
         public async Task<List<BidDataModel>> GetAuctionBidsAsync(int auctionId)
         {
+            var tenantId = CurrentTenantId;
+            if (tenantId > 0)
+            {
+                var hasAccess = await _appDbContext.Auctions
+                    .AsNoTracking()
+                    .Where(a => a.Id == auctionId)
+                    .AnyAsync(a => a.Organization.TenantId == tenantId || a.OpenToAll ||
+                        _appDbContext.VendorIntents.Any(vi => vi.AuctionId == auctionId && vi.TenantId == tenantId && vi.IsInterested && vi.IsQualified));
+
+                if (!hasAccess)
+                    return [];
+            }
+
             var data = await _appDbContext.Bids
                 .AsNoTracking()
                 .Where(x => x.AuctionId == auctionId && x.IsCurrent)
@@ -230,14 +238,22 @@ namespace Infrastructure.Repository.AuctionRel
                     }).ToList()
                 }).ToListAsync();
 
-            return data;
+            return await MaskForCallerAsync(auctionId, data);
         }
 
         public async Task<List<BidDataModel>> GetBidHistory(int vendorId, int auctionId)
         {
-            var data = await _appDbContext.Bids
+            var tenantId = CurrentTenantId;
+            var query = _appDbContext.Bids
                 .AsNoTracking()
-                .Where(x => x.AuctionId == auctionId && x.VendorId == vendorId)
+                .Where(x => x.AuctionId == auctionId && x.VendorId == vendorId);
+
+            if (tenantId > 0)
+            {
+                query = query.Where(x => x.Auction.Organization.TenantId == tenantId || (x.Vendor.TenantId == tenantId && x.VendorId == vendorId));
+            }
+
+            var data = await query
                 .OrderByDescending(x => x.BidRevisionNo)
                 .Select(x => new BidDataModel
                 {
@@ -300,6 +316,19 @@ namespace Infrastructure.Repository.AuctionRel
 
         public async Task<List<BidDataModel>> GetLeaderBoard(int auctionId)
         {
+            var tenantId = CurrentTenantId;
+            if (tenantId > 0)
+            {
+                var hasAccess = await _appDbContext.Auctions
+                    .AsNoTracking()
+                    .Where(a => a.Id == auctionId)
+                    .AnyAsync(a => a.Organization.TenantId == tenantId || a.OpenToAll ||
+                        _appDbContext.VendorIntents.Any(vi => vi.AuctionId == auctionId && vi.TenantId == tenantId && vi.IsInterested && vi.IsQualified));
+
+                if (!hasAccess)
+                    return [];
+            }
+
             var isForwardAuction = await _appDbContext.Auctions
                 .Where(a => a.Id == auctionId)
                 .Select(a => a.IsForwardAuction)
@@ -370,14 +399,22 @@ namespace Infrastructure.Repository.AuctionRel
                     }).ToList()
                 }).ToListAsync();
 
-            return data;
+            return await MaskForCallerAsync(auctionId, data);
         }
 
         public async Task<BidDataModel> GetById(long BidId)
         {
-            var bid = await _appDbContext.Bids
+            var tenantId = CurrentTenantId;
+            var query = _appDbContext.Bids
                 .AsNoTracking()
-                .Where(x => x.Id == BidId)
+                .Where(x => x.Id == BidId);
+
+            if (tenantId > 0)
+            {
+                query = query.Where(x => x.Auction.Organization.TenantId == tenantId || x.Vendor.TenantId == tenantId);
+            }
+
+            var bid = await query
                 .Select(x => new BidDataModel
                 {
                     Id = x.Id,
@@ -444,9 +481,17 @@ namespace Infrastructure.Repository.AuctionRel
 
         public async Task<BidDataModel?> GetVendorsCurrentBidAsync(int vendorId, int auctionId)
         {
-            var bid = await _appDbContext.Bids
+            var tenantId = CurrentTenantId;
+            var query = _appDbContext.Bids
                 .AsNoTracking()
-                .Where(x => x.AuctionId == auctionId && x.VendorId == vendorId && x.IsCurrent)
+                .Where(x => x.AuctionId == auctionId && x.VendorId == vendorId && x.IsCurrent);
+
+            if (tenantId > 0)
+            {
+                query = query.Where(x => x.Auction.Organization.TenantId == tenantId || (x.Vendor.TenantId == tenantId && x.VendorId == vendorId));
+            }
+
+            var bid = await query
                 .Select(x => new BidDataModel
                 {
                     Id = x.Id,
@@ -504,6 +549,152 @@ namespace Infrastructure.Repository.AuctionRel
                 }).FirstOrDefaultAsync();
 
             return bid;
+        }
+
+        public async Task<BidDataModel?> GetLeadingBidForAuctionAsync(int auctionId, bool isForwardAuction)
+        {
+            var query = _appDbContext.Bids
+                .AsNoTracking()
+                .Where(x => x.AuctionId == auctionId && x.IsCurrent);
+
+            query = isForwardAuction
+                ? query.OrderByDescending(x => x.NetAmount).ThenBy(x => x.CreatedAt)
+                : query.OrderBy(x => x.NetAmount).ThenBy(x => x.CreatedAt);
+
+            return await query
+                .Select(x => new BidDataModel
+                {
+                    Id = x.Id,
+                    IsCurrent = x.IsCurrent,
+                    MainBidId = x.MainBidId,
+                    AuctionId = x.AuctionId,
+                    VendorId = x.VendorId,
+                    BasicAmount = x.BasicAmount,
+                    TaxAmount = x.TaxAmount,
+                    DiscountAmount = x.DiscountAmount,
+                    NetAmount = x.NetAmount,
+                    CreatedAt = x.CreatedAt,
+                    BidRevisionNo = x.BidRevisionNo,
+                    BidDetails = x.BidDetails.Select(bd => new BidDetailDataModel
+                    {
+                        Id = bd.Id,
+                        BidId = bd.BidId,
+                        AuctionRequirementId = bd.AuctionRequirementId,
+                        Rate = bd.Rate,
+                        BaseAmount = bd.BaseAmount,
+                        NetAmount = bd.NetAmount
+                    }).ToList()
+                })
+                .FirstOrDefaultAsync();
+        }
+        /// <summary>
+        /// Vendors must never see competitors' identities or line rates, and must not see
+        /// competitors' amounts when the auction hides prices. Organisations see everything.
+        /// </summary>
+        private async Task<List<BidDataModel>> MaskForCallerAsync(int auctionId, List<BidDataModel> bids)
+        {
+            var role = _jwtHelper.GetRole();
+            if (!string.Equals(role, "Vendor", StringComparison.OrdinalIgnoreCase))
+                return bids;
+
+            var callerVendorId = _jwtHelper.GetUserId();
+            var pricesHidden = await _appDbContext.Auctions
+                .AsNoTracking()
+                .Where(a => a.Id == auctionId)
+                .Select(a => a.IsBidPriceHidden)
+                .FirstOrDefaultAsync();
+
+            var position = 0;
+            foreach (var bid in bids)
+            {
+                position++;
+                if (bid.VendorId == callerVendorId)
+                    continue;
+
+                bid.VendorId = 0;
+                bid.Vendor = new Core.Models.Tenant.VendorDataModel { Id = 0, Name = $"Bidder {position}" };
+                bid.BidDetails = [];
+                bid.BasicAmount = 0;
+                bid.TaxAmount = 0;
+                bid.DiscountAmount = 0;
+                bid.MainBidId = null;
+
+                if (pricesHidden)
+                {
+                    bid.NetAmount = 0;
+                    bid.AmountHidden = true;
+                }
+            }
+
+            return bids;
+        }
+
+        public async Task<List<BidActivityDataModel>> GetActivityAsync(int auctionId)
+        {
+            var tenantId = CurrentTenantId;
+            var auction = await _appDbContext.Auctions
+                .AsNoTracking()
+                .Where(a => a.Id == auctionId)
+                .Select(a => new
+                {
+                    a.IsBidPriceHidden,
+                    a.OpenToAll,
+                    OwnerTenantId = a.Organization.TenantId
+                })
+                .FirstOrDefaultAsync();
+
+            if (auction == null)
+                return [];
+
+            var isVendor = string.Equals(_jwtHelper.GetRole(), "Vendor", StringComparison.OrdinalIgnoreCase);
+            var callerVendorId = isVendor ? _jwtHelper.GetUserId() : 0;
+
+            if (!isVendor && auction.OwnerTenantId != tenantId)
+                return [];
+
+            if (isVendor && !auction.OpenToAll)
+            {
+                var qualified = await _appDbContext.VendorIntents
+                    .AnyAsync(vi => vi.AuctionId == auctionId && vi.TenantId == tenantId && vi.IsInterested && vi.IsQualified);
+                if (!qualified)
+                    return [];
+            }
+
+            var rows = await _appDbContext.Bids
+                .AsNoTracking()
+                .Where(b => b.AuctionId == auctionId)
+                .OrderBy(b => b.CreatedAt)
+                .Select(b => new { b.VendorId, VendorName = b.Vendor.Name, b.NetAmount, b.CreatedAt, b.BidRevisionNo })
+                .ToListAsync();
+
+            var aliases = new Dictionary<int, string>();
+            return rows.Select(r =>
+            {
+                var isMine = isVendor && r.VendorId == callerVendorId;
+                string bidder;
+                if (!isVendor || isMine)
+                {
+                    bidder = isMine ? "You" : r.VendorName;
+                }
+                else
+                {
+                    if (!aliases.TryGetValue(r.VendorId, out var alias))
+                    {
+                        alias = $"Bidder {aliases.Count + 1}";
+                        aliases[r.VendorId] = alias;
+                    }
+                    bidder = alias;
+                }
+
+                return new BidActivityDataModel
+                {
+                    At = r.CreatedAt,
+                    NetAmount = isVendor && !isMine && auction.IsBidPriceHidden ? null : r.NetAmount,
+                    Bidder = bidder,
+                    IsMine = isMine,
+                    BidRevisionNo = r.BidRevisionNo
+                };
+            }).ToList();
         }
     }
 }

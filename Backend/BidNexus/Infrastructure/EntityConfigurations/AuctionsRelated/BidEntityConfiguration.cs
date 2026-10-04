@@ -48,6 +48,10 @@ namespace Infrastructure.EntityConfigurations.AuctionsRelated
                 .HasForeignKey(x => x.BidId)
                 .HasConstraintName("FK_BidDetail_BidId")
                 .OnDelete(DeleteBehavior.Cascade);
+
+            builder.HasIndex(x => new { x.AuctionId, x.VendorId, x.BidRevisionNo })
+                .IsUnique()
+                .HasDatabaseName("IX_Bid_AuctionId_VendorId_BidRevisionNo");
         }
     }
 }

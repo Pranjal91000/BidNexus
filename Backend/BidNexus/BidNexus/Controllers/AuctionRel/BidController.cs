@@ -8,25 +8,24 @@ using Core.Abstraction.Services;
 namespace API.Controllers.AuctionRel;
 
 [ApiController]
-[Authorize(Roles = "Vendor")]
+[Authorize]
 [Route("api/bids")]
 public class BidController(
-    IAuctionEngine auctionEngine,
     IBidService bidService,
-    IAuctionRealtimeService realtimeService) : ControllerBase
+    IAuctionRealtimeCoreService realtimeService) : ControllerBase
 {
-    private readonly IAuctionEngine _auctionEngine = auctionEngine;
     private readonly IBidService _bidService = bidService;
-    private readonly IAuctionRealtimeService _realtimeService = realtimeService;
+    private readonly IAuctionRealtimeCoreService _realtimeService = realtimeService;
     
     [HttpPost]
+    [Authorize(Roles = "Vendor")]
     [ProducesResponseType(typeof(BidResponseDataModel), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<BidResponseDataModel>> ProcessBid([FromBody] BidCreateRequest request, CancellationToken cancellationToken)
     {
         try
         {
-            var result = await _auctionEngine.ProcessBidAsync(request, cancellationToken);
+            var result = await _bidService.ProcessBidAsync(request, cancellationToken);
 
             await _realtimeService.PublishBidAcceptedAsync(
                 result.AuctionId,
@@ -86,6 +85,15 @@ public class BidController(
     public async Task<ActionResult<List<BidDataModel>>> GetLeaderBoard(int auctionId, CancellationToken cancellationToken)
     {
         var result = await _bidService.GetLeaderBoardAsync(auctionId, cancellationToken);
+        return Ok(result);
+    }
+
+    /// <summary>Every bid event in time order, for the price-trend chart. Masked for vendors.</summary>
+    [HttpGet("auction/{auctionId:int}/activity")]
+    [ProducesResponseType(typeof(List<BidActivityDataModel>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<List<BidActivityDataModel>>> GetActivity(int auctionId, CancellationToken cancellationToken)
+    {
+        var result = await _bidService.GetActivityAsync(auctionId, cancellationToken);
         return Ok(result);
     }
 

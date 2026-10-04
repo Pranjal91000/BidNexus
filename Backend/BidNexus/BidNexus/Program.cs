@@ -1,4 +1,5 @@
 using API.Extensions;
+using API.Middlewares;
 using Core.Extensions;
 using Infrastructure.Extensions;
 using Core.Services;
@@ -44,6 +45,7 @@ builder.Services.AddSwaggerDocumentation();
 var app = builder.Build();
 
 app.UseForwardedHeaders();
+app.UseMiddleware<GlobalExceptionHandlerMiddleware>();
 app.UseStaticFiles();
 
 using (var scope = app.Services.CreateScope())

@@ -14,7 +14,12 @@ namespace Infrastructure.EntityConfigurations.GlobalData
             builder.Property(x => x.Id).ValueGeneratedOnAdd();
 
             builder.Property(x => x.ParameterName).IsRequired();
-            builder.Property(x => x.RatingFor).IsRequired();
+            builder.Property(x => x.RatingForId).IsRequired();
+
+            builder.HasOne(x => x.RatingFor)
+                .WithMany()
+                .HasForeignKey(x => x.RatingForId)
+                .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }

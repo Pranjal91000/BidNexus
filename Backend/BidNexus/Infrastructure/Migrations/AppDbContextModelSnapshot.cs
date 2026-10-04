@@ -48,7 +48,6 @@ namespace Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTimeOffset>("CreatedDateTime")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<Guid?>("DocAttachmentId")
@@ -68,7 +67,6 @@ namespace Infrastructure.Migrations
                         .HasColumnType("boolean");
 
                     b.Property<DateTimeOffset>("LastModifiedDateTime")
-                        .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<bool>("OpenToAll")
@@ -226,11 +224,13 @@ namespace Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("AuctionId");
-
                     b.HasIndex("MainBidId");
 
                     b.HasIndex("VendorId");
+
+                    b.HasIndex("AuctionId", "VendorId", "BidRevisionNo")
+                        .IsUnique()
+                        .HasDatabaseName("IX_Bid_AuctionId_VendorId_BidRevisionNo");
 
                     b.ToTable("Bid", "AuctionRel");
                 });
@@ -463,10 +463,12 @@ namespace Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<bool>("RatingFor")
-                        .HasColumnType("boolean");
+                    b.Property<short>("RatingForId")
+                        .HasColumnType("smallint");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("RatingForId");
 
                     b.ToTable("RatingParameter", "GlobalData");
                 });
@@ -533,7 +535,6 @@ namespace Infrastructure.Migrations
                         .HasColumnType("text");
 
                     b.Property<DateTimeOffset>("CreatedDateTime")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<int?>("DocAttachmentId")
@@ -543,7 +544,6 @@ namespace Infrastructure.Migrations
                         .HasColumnType("text");
 
                     b.Property<DateTimeOffset>("LastModifiedDateTime")
-                        .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Name")
@@ -614,11 +614,9 @@ namespace Infrastructure.Migrations
                         .HasColumnType("text");
 
                     b.Property<DateTimeOffset>("CreatedDateTime")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTimeOffset>("LastModifiedDateTime")
-                        .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Name")
@@ -671,11 +669,9 @@ namespace Infrastructure.Migrations
                         .HasColumnType("text");
 
                     b.Property<DateTimeOffset>("CreatedDateTime")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTimeOffset>("LastModifiedDateTime")
-                        .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Name")
@@ -1115,6 +1111,17 @@ namespace Infrastructure.Migrations
                         .HasConstraintName("Fk_LoginAttempt_StatusId");
 
                     b.Navigation("Status");
+                });
+
+            modelBuilder.Entity("Core.Entities.GlobalData.RatingParameter", b =>
+                {
+                    b.HasOne("Core.Entities.GlobalData.RatingFor", "RatingFor")
+                        .WithMany()
+                        .HasForeignKey("RatingForId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("RatingFor");
                 });
 
             modelBuilder.Entity("Core.Entities.Master.Item", b =>

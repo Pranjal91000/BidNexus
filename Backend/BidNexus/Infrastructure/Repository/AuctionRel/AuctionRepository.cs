@@ -5,6 +5,7 @@ using Core.Models.AuctionRelated;
 using Core.Models.Master;
 using Core.Models.Models;
 using Microsoft.EntityFrameworkCore;
+using Core.Enumeration;
 
 namespace Infrastructure.Repository.AuctionRel
 {
@@ -18,6 +19,16 @@ namespace Infrastructure.Repository.AuctionRel
             if (auction.TenantId == 0)
             {
                 auction.TenantId = jwtHelper.GetTenantId();
+            }
+
+            if (auction.CreatedDateTime == default)
+            {
+                auction.CreatedDateTime = DateTimeOffset.UtcNow;
+            }
+
+            if (auction.LastModifiedDateTime == default)
+            {
+                auction.LastModifiedDateTime = DateTimeOffset.UtcNow;
             }
 
             if (auction.AuctionRequirements != null)
@@ -102,7 +113,6 @@ namespace Infrastructure.Repository.AuctionRel
                     .ThenInclude(r => r.Item)
                 .Include(a => a.AuctionRequirements)
                     .ThenInclude(r => r.Unit)
-                .Where(x => x.TenantId == jwtHelper.GetTenantId())
                 .FirstOrDefaultAsync(x => x.Id == Id);
 
             if (auction == null) throw new KeyNotFoundException($"Auction with the provided {Id} not found.");
@@ -110,6 +120,8 @@ namespace Infrastructure.Repository.AuctionRel
             return new AuctionDataModel
             {
                 Id = auction.Id,
+                AuctionName = auction.AuctionName,
+                About = auction.About,
                 DocNoYearly = auction.DocNoYearly,
                 DocDate = auction.DocDate,
                 IsForwardAuction = auction.IsForwardAuction,
@@ -156,18 +168,20 @@ namespace Infrastructure.Repository.AuctionRel
             DateTimeOffset now,
             string scheduledStatusName,
             string activeStatusName,
-            string closedStatusName)
+            string completedStatusName)
         {
             var normalizedScheduled = scheduledStatusName.Trim();
             var normalizedActive = activeStatusName.Trim();
-            var normalizedClosed = closedStatusName.Trim();
+            var normalizedCompleted = completedStatusName.Trim();
 
             return await _dbContext.Auctions
                 .AsNoTracking()
                 .Include(a => a.Status)
                 .Where(a =>
-                    (a.Status.Name == normalizedScheduled && a.AuctionStartTime <= now) ||
-                    (a.Status.Name == normalizedActive && a.AuctionEndTime <= now))
+                    // Authorized auctions must also be started/closed by the worker; previously they were never selected.
+                    ((a.StatusId == (short)StatusEnum.Authorized || a.StatusId == (short)StatusEnum.Scheduled) && a.AuctionStartTime <= now) ||
+                    (a.StatusId == (short)StatusEnum.Open && a.AuctionEndTime <= now) ||
+                    (a.StatusId == (short)StatusEnum.Completed && !_dbContext.AuctionStatements.Any(s => s.AuctionId == a.Id)))
                 .Select(a => new AuctionLifecycleDataModel
                 {
                     Id = a.Id,
@@ -176,14 +190,31 @@ namespace Infrastructure.Repository.AuctionRel
                     StatusName = a.Status.Name,
                     AuctionStartTime = a.AuctionStartTime,
                     AuctionEndTime = a.AuctionEndTime,
-                    ShouldStart = a.Status.Name == normalizedScheduled &&
+                    ShouldStart = (a.StatusId == (short)StatusEnum.Authorized || a.StatusId == (short)StatusEnum.Scheduled) &&
                                   a.AuctionStartTime <= now &&
                                   a.AuctionEndTime > now,
-                    ShouldClose = (a.Status.Name == normalizedScheduled ||
-                                a.Status.Name == normalizedActive) &&
-                               a.AuctionEndTime <= now
+                    ShouldComplete = (a.StatusId == (short)StatusEnum.Authorized ||
+                                      a.StatusId == (short)StatusEnum.Scheduled ||
+                                      a.StatusId == (short)StatusEnum.Open) &&
+                                     a.AuctionEndTime <= now,
+                    NeedsStatementGeneration = a.StatusId == (short)StatusEnum.Completed &&
+                                               !_dbContext.AuctionStatements.Any(s => s.AuctionId == a.Id)
                 })
                 .ToListAsync();
+        }
+
+        public async Task UpdateStatusAsync(int auctionId, short statusId)
+        {
+            var auction = await _dbContext.Auctions
+                .FirstOrDefaultAsync(a => a.Id == auctionId);
+
+            if (auction == null)
+                return;
+
+            auction.StatusId = statusId;
+            auction.LastModifiedDateTime = DateTimeOffset.UtcNow;
+
+            await _dbContext.SaveChangesAsync();
         }
 
         public async Task UpdateStatusAsync(int auctionId, string statusName)
@@ -225,9 +256,10 @@ namespace Infrastructure.Repository.AuctionRel
             {
                 var auction = await _dbContext.Auctions
                     .AsNoTracking()
-                    .Where(a => a.Id == auctionId && a.TenantId == tenantId)
+                    .Where(a => a.Id == auctionId)
                     .Select(a => a.OpenToAll)
                     .FirstOrDefaultAsync(cancellationToken);
+
 
                 var vendorExists = await _dbContext.Vendors
                     .AsNoTracking()
@@ -245,6 +277,11 @@ namespace Infrastructure.Repository.AuctionRel
                              x.VendorId == userId &&
                              x.TenantId == tenantId,
                         cancellationToken);
+
+                if(auction)
+                {
+                    return true;
+                }
 
                 return intent == null
                     ? auction
@@ -290,10 +327,18 @@ namespace Infrastructure.Repository.AuctionRel
                 .Select(a => new AuctionGetDataModel
                 {
                     Id = a.Id,
+                    AuctionName = a.AuctionName,
+                    About = a.About,
                     DocNoYearly = a.DocNoYearly,
                     DocDate = a.DocDate,
                     IsForwardAuction = a.IsForwardAuction,
                     StatusName = a.Status.Name,
+                    StatusId = a.StatusId,
+                    AuctionStartTime = a.AuctionStartTime,
+                    AuctionEndTime = a.AuctionEndTime,
+                    OpenToAll = a.OpenToAll,
+                    IsBidPriceHidden = a.IsBidPriceHidden,
+                    OrganizationId = a.OrganizationId,
                     AuctionIntentSubmissionDate = a.AuctionIntentSubmissionDate,
                     Organization = new OrganizationOverviewDataModel
                     {
@@ -329,6 +374,81 @@ namespace Infrastructure.Repository.AuctionRel
                     }).ToList()
                 })
                 .ToListAsync();
+        }
+
+        public async Task<List<AuctionGetDataModel>> GetPendingAuctionsAsync(short categoryId, short pageNo, short pageSize, CancellationToken cancellationToken = default)
+        {
+            // Open/upcoming auctions across organisations, plus completed auctions the calling vendor bid in
+            // (so vendors can see their results). Drafts are never visible.
+            var callerVendorId = jwtHelper.GetUserId();
+            var query = _dbContext.Auctions
+                .AsNoTracking()
+                .Where(a => a.StatusId != (short)StatusEnum.Draft &&
+                    (a.StatusId != (short)StatusEnum.Completed ||
+                     _dbContext.Bids.Any(b => b.AuctionId == a.Id && b.VendorId == callerVendorId)));
+
+            if (categoryId > 0)
+            {
+                query = query.Where(a => a.AuctionRequirements.Any(r => r.Item.CategoryId == categoryId));
+            }
+
+            var currentPage = pageNo > 0 ? pageNo : 1;
+            var takeSize = pageSize > 0 ? pageSize : 10;
+            var skip = (currentPage - 1) * takeSize;
+
+            return await query
+                .OrderByDescending(a => a.Id)
+                .Skip(skip)
+                .Take(takeSize)
+                .Select(a => new AuctionGetDataModel
+                {
+                    Id = a.Id,
+                    AuctionName = a.AuctionName,
+                    About = a.About,
+                    DocNoYearly = a.DocNoYearly,
+                    DocDate = a.DocDate,
+                    IsForwardAuction = a.IsForwardAuction,
+                    StatusName = a.Status.Name,
+                    StatusId = a.StatusId,
+                    AuctionStartTime = a.AuctionStartTime,
+                    AuctionEndTime = a.AuctionEndTime,
+                    OpenToAll = a.OpenToAll,
+                    IsBidPriceHidden = a.IsBidPriceHidden,
+                    OrganizationId = a.OrganizationId,
+                    AuctionIntentSubmissionDate = a.AuctionIntentSubmissionDate,
+                    Organization = new OrganizationOverviewDataModel
+                    {
+                        Name = a.Organization.Name,
+                        OfficialAddress = a.Organization.OfficialAddress,
+                        ForegroundImageId = a.Organization.ForegroundImageId,
+                        About = a.Organization.About
+                    },
+                    AuctionRequirements = a.AuctionRequirements.Select(r => new AuctionRequirementDataModel
+                    {
+                        Id = r.Id,
+                        LineNo = r.LineNo,
+                        AuctionId = r.AuctionId,
+                        ItemId = r.ItemId,
+                        TechnicalSpecification = r.TechnicalSpecification,
+                        Quantity = r.Quantity,
+                        UnitId = r.UnitId,
+                        DocumentAttachmentId = r.DocumentAttachmentId,
+                        Item = new ItemDataModel
+                        {
+                            Id = r.Item.Id,
+                            Name = r.Item.Name,
+                            Code = r.Item.Code,
+                            CategoryId = r.Item.CategoryId
+                        },
+                        Unit = new UnitDataModel
+                        {
+                            Id = r.Unit.Id,
+                            Name = r.Unit.Name,
+                            Code = r.Unit.Code
+                        }
+                    }).ToList()
+                })
+                .ToListAsync(cancellationToken);
         }
     }
 }

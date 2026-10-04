@@ -10,9 +10,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@microsoft/signalr": "^10.0.0",
+    "lucide-react": "^1.50.0",
     "react": "^19.2.8",
-    "react-dom": "^19.2.8",
-    "@microsoft/signalr": "^10.0.0"
+    "react-dom": "^19.2.8"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

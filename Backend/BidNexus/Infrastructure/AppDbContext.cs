@@ -55,4 +55,42 @@ public class AppDbContext(
 
         base.OnModelCreating(modelBuilder);
     }
+
+    public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        var now = DateTimeOffset.UtcNow;
+        foreach (var entry in ChangeTracker.Entries())
+        {
+            if (entry.Entity is Core.Entities.Shared.TransactionBaseEntity transactionEntity)
+            {
+                if (entry.State == EntityState.Added)
+                {
+                    if (transactionEntity.CreatedDateTime == default)
+                        transactionEntity.CreatedDateTime = now;
+                    if (transactionEntity.LastModifiedDateTime == default)
+                        transactionEntity.LastModifiedDateTime = now;
+                }
+                else if (entry.State == EntityState.Modified)
+                {
+                    transactionEntity.LastModifiedDateTime = now;
+                }
+            }
+            else if (entry.Entity is Core.Entities.Shared.MasterBaseEntity masterEntity)
+            {
+                if (entry.State == EntityState.Added)
+                {
+                    if (masterEntity.CreatedDateTime == default)
+                        masterEntity.CreatedDateTime = now;
+                    if (masterEntity.LastModifiedDateTime == default)
+                        masterEntity.LastModifiedDateTime = now;
+                }
+                else if (entry.State == EntityState.Modified)
+                {
+                    masterEntity.LastModifiedDateTime = now;
+                }
+            }
+        }
+
+        return base.SaveChangesAsync(cancellationToken);
+    }
 }

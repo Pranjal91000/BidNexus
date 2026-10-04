@@ -44,5 +44,23 @@ namespace Infrastructure.Repository.Auth
                 TenantId = user.Id
             };
         }
+
+        public async Task<AuthDataModel?> ValidateUserStatus(int tenantId)
+        {
+            var user = await _dbContext.Tenants
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Id == tenantId);
+
+            if (user == null || user.IsBlocked)
+                return null;
+
+            return new AuthDataModel
+            {
+                Email = user.EmailAddress,
+                Role = user.IsVendor ? "Vendor" : "Organization",
+                UserId = user.ReferenceId,
+                TenantId = user.Id
+            };
+        }
     }
 }
