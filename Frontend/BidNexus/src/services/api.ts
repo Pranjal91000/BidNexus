@@ -26,8 +26,11 @@ import type {
   LoginResponse
 } from '../types';
 
-export const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:5000' : '');
+// Production is served through the same Nginx origin, which proxies API and SignalR
+// traffic to the Railway backend. This avoids browser-side CORS entirely.
+export const API_BASE_URL = import.meta.env.DEV
+  ? (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || 'http://localhost:5000')
+  : '';
 
 let refreshPromise: Promise<string | null> | null = null;
 
