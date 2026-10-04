@@ -51,7 +51,9 @@ export function useAuctionSignalR(
       }
     }
 
-    const hubUrl = `${API_BASE_URL}/hubs/auction`;
+    const hubUrl = import.meta.env.DEV
+      ? `${API_BASE_URL}/hubs/auction`
+      : 'https://bidnexus-release-v1-production.up.railway.app/hubs/auction';
     
     const connection = new HubConnectionBuilder()
       .withUrl(hubUrl, {
