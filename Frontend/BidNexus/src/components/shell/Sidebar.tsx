@@ -9,7 +9,8 @@ import {
   Wifi,
   ShieldCheck,
   Building2,
-  Store
+  Store,
+  Database
 } from 'lucide-react';
 import type { Claims, Page, SignalRStatus } from '../../types';
 
@@ -95,6 +96,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <span>Statements</span>
           </button>
         )}
+
+        <button
+          className={`bn-nav-item ${page === 'masters' ? 'active' : ''}`}
+          onClick={() => navigate('masters')}
+        >
+          <Database size={18} />
+          <span>Master Catalog</span>
+        </button>
 
         <button
           className={`bn-nav-item ${page === 'workspace' ? 'active' : ''}`}

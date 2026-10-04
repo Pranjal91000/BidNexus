@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import type { Auction, Bid, Claims, Statement } from '../../types';
+import type { Auction, Bid, Claims, Statement, BidDetailSaveRequest } from '../../types';
 import { Badge, toneFromStatus } from '../ui/Badge';
 import { Button } from '../ui/Button';
 import { Countdown } from '../ui/Countdown';
@@ -55,8 +55,8 @@ export const LiveAuctionWorkstation: React.FC<LiveAuctionWorkstationProps> = ({
   const isVendor = claims.role === 'Vendor';
   const isOrg = claims.role === 'Organization';
   const statusTone = toneFromStatus(auctionState.statusName);
-  const isLive = statusTone === 'live';
-  const isClosed = statusTone === 'closed';
+  const isLive = statusTone === 'live' || auctionState.statusName?.toLowerCase() === 'open';
+  const isClosed = statusTone === 'closed' || auctionState.statusName?.toLowerCase() === 'completed';
 
   // Realtime SignalR Handlers
   const handleBidAcceptedSignalR = useCallback(
@@ -70,10 +70,19 @@ export const LiveAuctionWorkstation: React.FC<LiveAuctionWorkstationProps> = ({
     [onShowToast]
   );
 
-  const handleAuctionClosedSignalR = useCallback(
+  const handleAuctionStartedSignalR = useCallback(
     () => {
-      onShowToast('This auction has been officially closed by the procurement engine.', 'warning');
-      setAuctionState((prev) => ({ ...prev, statusName: 'Closed' }));
+      onShowToast('This auction has started and is now open for live bidding!', 'success');
+      setAuctionState((prev) => ({ ...prev, statusName: 'Open' }));
+      loadAuctionData(false);
+    },
+    [onShowToast]
+  );
+
+  const handleAuctionCompletedSignalR = useCallback(
+    () => {
+      onShowToast('This auction has been officially completed by the procurement engine.', 'warning');
+      setAuctionState((prev) => ({ ...prev, statusName: 'Completed' }));
       loadAuctionData(false);
     },
     [onShowToast]
@@ -84,7 +93,9 @@ export const LiveAuctionWorkstation: React.FC<LiveAuctionWorkstationProps> = ({
     token,
     auctionState.id,
     handleBidAcceptedSignalR,
-    handleAuctionClosedSignalR
+    handleAuctionCompletedSignalR,
+    handleAuctionCompletedSignalR,
+    handleAuctionStartedSignalR
   );
 
   const loadAuctionData = async (showLoading = true) => {
@@ -132,40 +143,29 @@ export const LiveAuctionWorkstation: React.FC<LiveAuctionWorkstationProps> = ({
   const leadingBidAmount = leaderboard.length > 0 ? leaderboard[0].netAmount : null;
 
   // Submit Bid Logic
-  const handleSubmitBid = async (amount: number) => {
+  const handleSubmitBid = async (bidData: {
+    totalNet: number;
+    totalBasic: number;
+    totalTax: number;
+    bidDetails: BidDetailSaveRequest[];
+  }) => {
     setSubmittingBid(true);
     try {
       const currentRevNo = currentVendorBid ? currentVendorBid.bidRevisionNo + 1 : 1;
 
-      // Construct requirements detail split
-      const reqs = auctionState.auctionRequirements || [];
-      const bidDetails = reqs.map((r) => {
-        const totalQty = reqs.reduce((acc, x) => acc + (x.quantity || 1), 0);
-        const ratio = (r.quantity || 1) / Math.max(1, totalQty);
-        const lineNet = amount * ratio;
-        const rate = lineNet / Math.max(1, r.quantity || 1);
-        return {
-          auctionRequirementId: r.id,
-          rate: Number(rate.toFixed(2)),
-          baseAmount: Number(lineNet.toFixed(2)),
-          netAmount: Number(lineNet.toFixed(2)),
-          taxes: [],
-        };
-      });
-
       await api.submitBid(token, {
         auctionId: auctionState.id,
         vendorId: claims.userId,
-        basicAmount: amount,
-        taxAmount: 0,
+        basicAmount: bidData.totalBasic,
+        taxAmount: bidData.totalTax,
         discountAmount: 0,
-        netAmount: amount,
+        netAmount: bidData.totalNet,
         mainBidId: currentVendorBid ? currentVendorBid.id : null,
         bidRevisionNo: currentRevNo,
-        bidDetails,
+        bidDetails: bidData.bidDetails,
       });
 
-      onShowToast(`Bid of ${formatCurrency(amount)} successfully accepted!`, 'success');
+      onShowToast(`Bid of ${formatCurrency(bidData.totalNet)} successfully accepted!`, 'success');
       await loadAuctionData(false);
     } catch (err: any) {
       throw err;
@@ -215,7 +215,7 @@ export const LiveAuctionWorkstation: React.FC<LiveAuctionWorkstationProps> = ({
           </div>
 
           <div className="bn-hero-right-timer">
-            <Countdown endTime={auctionState.auctionEndTime} startTime={auctionState.auctionStartTime} />
+            <Countdown endTime={auctionState.auctionEndTime} startTime={auctionState.auctionStartTime} size="lg" />
             <div className="bn-time-bounds">
               <span>Start: {formatDate(auctionState.auctionStartTime)}</span>
               <span>End: {formatDate(auctionState.auctionEndTime)}</span>
@@ -233,6 +233,7 @@ export const LiveAuctionWorkstation: React.FC<LiveAuctionWorkstationProps> = ({
           leadingBidAmount={leadingBidAmount}
           onSubmitBid={handleSubmitBid}
           submitting={submittingBid}
+          token={token}
           disabledReason={!isLive ? `Bidding is disabled because this auction is ${auctionState.statusName || 'Closed'}.` : undefined}
         />
       )}
@@ -273,6 +274,9 @@ export const LiveAuctionWorkstation: React.FC<LiveAuctionWorkstationProps> = ({
                 auction={auctionState}
                 statements={statements}
                 onRefresh={() => loadAuctionData(false)}
+                token={token}
+                claims={claims}
+                onShowToast={onShowToast}
               />
             )}
           </>

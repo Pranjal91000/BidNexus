@@ -6,7 +6,6 @@ public interface IAuctionStatementRepository
 {
     Task GenerateAsync(
         int auctionId,
-        int tenantId,
         CancellationToken cancellationToken = default);
 
     Task<List<AuctionStatementDataModel>> GetAsync(

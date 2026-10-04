@@ -2,6 +2,7 @@ import React from 'react';
 import type { Auction } from '../../types';
 import { StatCard } from '../ui/StatCard';
 import { Badge, toneFromStatus } from '../ui/Badge';
+import { Countdown } from '../ui/Countdown';
 import { Button } from '../ui/Button';
 import { Gavel, TrendingUp, Clock, CheckCircle2, ArrowRight, Store, Zap } from 'lucide-react';
 import { LoadingState } from '../ui/LoadingState';
@@ -104,7 +105,10 @@ export const VendorDashboard: React.FC<VendorDashboardProps> = ({
               {liveAuctions.slice(0, 4).map((auction) => (
                 <div key={auction.id} className="bn-dashboard-card" onClick={() => onOpenAuction(auction)}>
                   <div className="bn-card-header">
-                    <Badge tone={auction.statusName}>{auction.statusName || 'Live'}</Badge>
+                    <div className="bn-flex-center gap-2">
+                      <Badge tone={auction.statusName}>{auction.statusName || 'Live'}</Badge>
+                      <Countdown endTime={auction.auctionEndTime} startTime={auction.auctionStartTime} compact />
+                    </div>
                     <span className="bn-auction-type-chip">
                       {auction.isForwardAuction ? 'FORWARD' : 'REVERSE'} AUCTION
                     </span>
@@ -147,7 +151,10 @@ export const VendorDashboard: React.FC<VendorDashboardProps> = ({
                 <div key={auction.id} className="bn-attention-item" onClick={() => onOpenAuction(auction)}>
                   <Clock size={18} className="bn-text-warning bn-pulse-slow" />
                   <div className="bn-attention-info">
-                    <strong>{auction.auctionName || auction.docNoYearly}</strong>
+                    <div className="bn-flex-between gap-2">
+                      <strong>{auction.auctionName || auction.docNoYearly}</strong>
+                      <Countdown endTime={auction.auctionEndTime} compact />
+                    </div>
                     <small>Final minutes. Enter workstation to update bid.</small>
                   </div>
                   <Button variant="primary" size="sm">Enter Desk</Button>

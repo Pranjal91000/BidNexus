@@ -9,9 +9,11 @@ namespace Core.Abstraction.AuctionRelated
         Task<AuctionResponseModel> UpdateAsync(Auction input);
         Task<AuctionDataModel> GetById(int id);
         Task<List<AuctionGetDataModel>> Get(short categoryId, short pageNo, short pageSize);
+        Task<List<AuctionGetDataModel>> GetPendingAuctionsAsync(short categoryId, short pageNo, short pageSize, CancellationToken cancellationToken = default);
         Task<bool> DeleteAsync(int id);
         Task<List<AuctionLifecycleDataModel>> GetAuctionsForLifecycleAsync(
-            DateTimeOffset now, string scheduledStatusName, string activeStatusName, string closedStatusName);
+            DateTimeOffset now, string scheduledStatusName = "", string activeStatusName = "", string completedStatusName = "");
+        Task UpdateStatusAsync(int auctionId, short statusId);
         Task UpdateStatusAsync(int auctionId, string statusName);
         Task<bool> CanAccessAuctionAsync(
             int auctionId,

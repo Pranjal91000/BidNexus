@@ -11,5 +11,4 @@ public interface IUnitRepository
     Task UpdateAsync(Unit unit, CancellationToken cancellationToken = default);
     Task<bool> DeleteAsync(int id, CancellationToken cancellationToken = default);
     Task<bool> IsReferencedAsync(int id, CancellationToken cancellationToken = default);
-    Task<bool> StatusExistsAsync(short statusId, CancellationToken cancellationToken = default);
 }

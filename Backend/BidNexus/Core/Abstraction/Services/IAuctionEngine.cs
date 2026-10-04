@@ -1,11 +1,11 @@
-using API.Models.AuctionRel;
+using Core.Entities.Auction;
 using Core.Models.AuctionRelated;
 
-namespace API.Abstraction.AuctionRel;
+namespace Core.Abstraction.Services;
 
 public interface IAuctionEngine
 {
     Task<BidResponseDataModel> ProcessBidAsync(
-        BidCreateRequest request,
+        Bid request,
         CancellationToken cancellationToken = default);
 }

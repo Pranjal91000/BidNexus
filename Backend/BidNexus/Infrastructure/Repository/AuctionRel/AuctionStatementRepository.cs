@@ -12,7 +12,6 @@ public sealed class AuctionStatementRepository(
 
     public async Task GenerateAsync(
         int auctionId,
-        int tenantId,
         CancellationToken cancellationToken = default)
     {
         await using var transaction =
@@ -20,20 +19,20 @@ public sealed class AuctionStatementRepository(
 
         try
         {
-            var auctionExists = await _dbContext.Auctions
+            var auction = await _dbContext.Auctions
                 .AsNoTracking()
-                .AnyAsync(
-                    a => a.Id == auctionId &&
-                         a.TenantId == tenantId,
-                    cancellationToken);
+                .Where(a => a.Id == auctionId)
+                .Select(a => new { a.Id, a.TenantId, a.IsForwardAuction })
+                .FirstOrDefaultAsync(cancellationToken);
 
-            if (!auctionExists)
+            if (auction == null)
                 throw new KeyNotFoundException($"Auction with ID {auctionId} not found.");
+
+            var tenantId = auction.TenantId;
 
             var alreadyGenerated = await _dbContext.AuctionStatements
                 .AnyAsync(
-                    x => x.AuctionId == auctionId &&
-                         x.TenantId == tenantId,
+                    x => x.AuctionId == auctionId,
                     cancellationToken);
 
             if (alreadyGenerated)
@@ -42,22 +41,20 @@ public sealed class AuctionStatementRepository(
                 return;
             }
 
-            var auction = await _dbContext.Auctions
+            var bidsQuery = _dbContext.Bids
                 .AsNoTracking()
-                .Where(a => a.Id == auctionId && a.TenantId == tenantId)
-                .Select(a => new { a.Id, a.IsForwardAuction })
-                .SingleAsync(cancellationToken);
+                .Where(b => b.AuctionId == auctionId && b.IsCurrent);
 
-            var currentBids = await _dbContext.Bids
-                .AsNoTracking()
-                .Where(b =>
-                    b.AuctionId == auctionId &&
-                    b.IsCurrent &&
-                    b.Auction.TenantId == tenantId)
-                .OrderByDescending(b => auction.IsForwardAuction
-                    ? b.NetAmount
-                    : -b.NetAmount)
-                .ThenBy(b => b.CreatedAt)
+            if (auction.IsForwardAuction)
+            {
+                bidsQuery = bidsQuery.OrderByDescending(b => b.NetAmount).ThenBy(b => b.CreatedAt);
+            }
+            else
+            {
+                bidsQuery = bidsQuery.OrderBy(b => b.NetAmount).ThenBy(b => b.CreatedAt);
+            }
+
+            var currentBids = await bidsQuery
                 .Select(b => new
                 {
                     b.Id,
@@ -84,6 +81,20 @@ public sealed class AuctionStatementRepository(
 
             await _dbContext.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
+        }
+        catch (DbUpdateException)
+        {
+            await transaction.RollbackAsync(CancellationToken.None);
+            // Race condition: if concurrent invocation already inserted, confirm idempotency
+            var alreadyGenerated = await _dbContext.AuctionStatements
+                .AnyAsync(
+                    x => x.AuctionId == auctionId,
+                    CancellationToken.None);
+
+            if (alreadyGenerated)
+                return;
+
+            throw;
         }
         catch
         {

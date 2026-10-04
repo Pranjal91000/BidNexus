@@ -28,6 +28,9 @@ public class ItemService(
 
     public async Task<ItemResponse> CreateAsync(ItemCreateRequest request, CancellationToken cancellationToken = default)
     {
+        if (string.Equals(_jwtHelper.GetRole(), "Vendor", StringComparison.OrdinalIgnoreCase))
+            throw new UnauthorizedAccessException("Vendors are not authorized to create catalog items.");
+
         var tenantId = _jwtHelper.GetTenantId();
 
         var categoryExists = await _itemRepository.CategoryExistsAsync(request.CategoryId, cancellationToken);

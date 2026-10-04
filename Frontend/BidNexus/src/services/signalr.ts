@@ -19,11 +19,23 @@ export interface AuctionClosedPayload {
   AuctionId?: number;
 }
 
+export interface AuctionCompletedPayload {
+  auctionId?: number;
+  AuctionId?: number;
+}
+
+export interface AuctionStartedPayload {
+  auctionId?: number;
+  AuctionId?: number;
+}
+
 export function useAuctionSignalR(
   token: string,
   auctionId: number | null,
   onBidAccepted?: (payload: BidAcceptedPayload) => void,
-  onAuctionClosed?: (payload: AuctionClosedPayload) => void
+  onAuctionClosed?: (payload: AuctionClosedPayload) => void,
+  onAuctionCompleted?: (payload: AuctionCompletedPayload) => void,
+  onAuctionStarted?: (payload: AuctionStartedPayload) => void
 ) {
   const [status, setStatus] = useState<SignalRStatus>('DISCONNECTED');
   const connectionRef = useRef<HubConnection | null>(null);
@@ -78,9 +90,25 @@ export function useAuctionSignalR(
       }
     });
 
+    connection.on('AuctionStarted', (data: AuctionStartedPayload) => {
+      const payloadAuctionId = data.AuctionId ?? data.auctionId;
+      if (!auctionId || payloadAuctionId === auctionId) {
+        onAuctionStarted?.(data);
+      }
+    });
+
+    connection.on('AuctionCompleted', (data: AuctionCompletedPayload) => {
+      const payloadAuctionId = data.AuctionId ?? data.auctionId;
+      if (!auctionId || payloadAuctionId === auctionId) {
+        onAuctionCompleted?.(data);
+        onAuctionClosed?.(data);
+      }
+    });
+
     connection.on('AuctionClosed', (data: AuctionClosedPayload) => {
       const payloadAuctionId = data.AuctionId ?? data.auctionId;
       if (!auctionId || payloadAuctionId === auctionId) {
+        onAuctionCompleted?.(data);
         onAuctionClosed?.(data);
       }
     });
@@ -96,7 +124,7 @@ export function useAuctionSignalR(
       console.warn('SignalR Connection Failed:', err);
       setStatus('DISCONNECTED');
     }
-  }, [token, auctionId, onBidAccepted, onAuctionClosed]);
+  }, [token, auctionId, onBidAccepted, onAuctionClosed, onAuctionCompleted, onAuctionStarted]);
 
   useEffect(() => {
     if (token && auctionId) {

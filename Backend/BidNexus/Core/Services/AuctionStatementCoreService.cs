@@ -4,16 +4,15 @@ using Core.Models.AuctionRelated;
 
 namespace Core.Services;
 
-public sealed class AuctionStatementService(
-    IAuctionStatementRepository repository) : IAuctionStatementService
+public sealed class AuctionStatementCoreService(
+    IAuctionStatementRepository repository) : IAuctionStatementCoreService
 {
     private readonly IAuctionStatementRepository _repository = repository;
 
     public Task GenerateAsync(
         int auctionId,
-        int tenantId,
         CancellationToken cancellationToken = default)
-        => _repository.GenerateAsync(auctionId, tenantId, cancellationToken);
+        => _repository.GenerateAsync(auctionId, cancellationToken);
 
     public Task<List<AuctionStatementDataModel>> GetAsync(
         int auctionId,

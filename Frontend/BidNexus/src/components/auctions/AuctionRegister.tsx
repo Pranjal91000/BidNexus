@@ -4,6 +4,7 @@ import { AuctionCard } from './AuctionCard';
 import { Button } from '../ui/Button';
 import { Select } from '../ui/Input';
 import { Badge, toneFromStatus } from '../ui/Badge';
+import { Countdown } from '../ui/Countdown';
 import { EmptyState } from '../ui/EmptyState';
 import { LoadingState } from '../ui/LoadingState';
 import { AuctionFormModal } from './AuctionFormModal';
@@ -61,7 +62,7 @@ export const AuctionRegister: React.FC<AuctionRegisterProps> = ({
         const tone = toneFromStatus(a.statusName);
         if (statusFilter === 'LIVE' && tone !== 'live') return false;
         if (statusFilter === 'SCHEDULED' && tone !== 'scheduled') return false;
-        if (statusFilter === 'CLOSED' && tone !== 'closed') return false;
+        if ((statusFilter === 'CLOSED' || statusFilter === 'COMPLETED') && tone !== 'closed') return false;
 
         // Type filter
         if (typeFilter === 'FORWARD' && !a.isForwardAuction) return false;
@@ -129,7 +130,7 @@ export const AuctionRegister: React.FC<AuctionRegisterProps> = ({
                 { value: 'ALL', label: 'All Statuses' },
                 { value: 'LIVE', label: '● Live Market Only' },
                 { value: 'SCHEDULED', label: 'Scheduled' },
-                { value: 'CLOSED', label: 'Closed / Awarded' },
+                { value: 'COMPLETED', label: 'Completed / Awarded' },
               ]}
             />
 
@@ -235,7 +236,10 @@ export const AuctionRegister: React.FC<AuctionRegisterProps> = ({
                       <span className="bn-text-xs">{formatDate(auction.auctionStartTime)}</span>
                     </td>
                     <td>
-                      <span className="bn-text-xs">{formatDate(auction.auctionEndTime)}</span>
+                      <div className="bn-flex-col gap-1">
+                        <span className="bn-text-xs">{formatDate(auction.auctionEndTime)}</span>
+                        <Countdown endTime={auction.auctionEndTime} startTime={auction.auctionStartTime} compact />
+                      </div>
                     </td>
                     <td>
                       <span className="bn-req-pill">

@@ -74,7 +74,7 @@ export const AuctionStatementsRegister: React.FC<AuctionStatementsRegisterProps>
       </div>
 
       {loading ? (
-        <LoadingState message="Fetching closed auction statements..." />
+        <LoadingState message="Fetching completed auction statements..." />
       ) : statementRows.length > 0 ? (
         <div className="bn-statements-cards-list">
           {statementRows.map(({ auction, statements }) => {
@@ -82,7 +82,7 @@ export const AuctionStatementsRegister: React.FC<AuctionStatementsRegisterProps>
             return (
               <div key={auction.id} className="bn-statement-overview-card" onClick={() => onOpenAuction(auction)}>
                 <div className="bn-card-header">
-                  <Badge tone="closed">Closed & Awarded</Badge>
+                  <Badge tone="closed">Completed & Awarded</Badge>
                   <span className="bn-auction-id">Doc #{auction.docNoYearly}</span>
                 </div>
 

@@ -1,6 +1,6 @@
 export type Role = 'Vendor' | 'Organization' | 'Unknown';
 
-export type Page = 'overview' | 'auctions' | 'bids' | 'statements' | 'workspace';
+export type Page = 'overview' | 'auctions' | 'bids' | 'statements' | 'workspace' | 'masters';
 
 export interface Claims {
   role: Role;
@@ -8,13 +8,17 @@ export interface Claims {
   tenantId: number;
   email: string;
   name: string;
+  exp?: number;
 }
 
 export interface Unit {
   id: number;
   unitName?: string;
   name?: string;
+  code?: string;
   alias?: string;
+  statusId?: number;
+  statusRemarks?: string;
 }
 
 export interface Item {
@@ -23,6 +27,22 @@ export interface Item {
   name?: string;
   code?: string;
   about?: string;
+  categoryId?: number;
+  statusId?: number;
+  applicableUnits?: any[];
+  unitIds?: number[];
+}
+
+export interface TaxMaster {
+  id: number;
+  name: string;
+  code: string;
+  taxNatureId: number;
+  chargeTypeId: number;
+  taxValue: number;
+  statusId: number;
+  statusRemarks?: string;
+  createdDateTime?: string;
 }
 
 export interface Requirement {
@@ -84,13 +104,24 @@ export interface AuctionCreateRequest {
 export interface AuctionUpdateRequest extends AuctionCreateRequest {}
 
 export interface BidTaxDetailSaveRequest {
-  taxId?: number;
+  taxId?: number | null;
   taxName: string;
   taxCode: string;
   taxNatureId: number;
   chargeTypeId: number;
   taxValue: number;
   taxAmount: number;
+}
+
+export interface AppliedTaxItem {
+  id?: number | null;
+  tempKey: string;
+  name: string;
+  code: string;
+  taxNatureId: number;
+  chargeTypeId: number;
+  taxValue: number;
+  isCustom?: boolean;
 }
 
 export interface BidDetailSaveRequest {
@@ -142,6 +173,9 @@ export interface Statement {
 export interface LoginResponse {
   token?: string;
   accessToken?: string;
+  refreshToken?: string;
+  expiresAt?: string;
+  refreshTokenExpiresAt?: string;
   message?: string;
   userId?: number;
   tenantId?: number;
@@ -161,4 +195,83 @@ export interface GlobalStatus {
   code?: string;
 }
 
+export const ChargeTypeEnum = {
+  Fixed: 1,
+  Percentage: 2,
+  PerUnit: 3,
+} as const;
+export type ChargeTypeEnum = (typeof ChargeTypeEnum)[keyof typeof ChargeTypeEnum];
+
+export const TaxNatureEnum = {
+  Additive: 1,
+  Deductive: 2,
+} as const;
+export type TaxNatureEnum = (typeof TaxNatureEnum)[keyof typeof TaxNatureEnum];
+
+export interface ChargeType {
+  id: number;
+  name: string;
+  code: string;
+  isActive?: boolean;
+}
+
+export interface TaxNature {
+  id: number;
+  name: string;
+  code: string;
+  isActive?: boolean;
+}
+
+export interface RatingFor {
+  id: number;
+  name: string;
+  code: string;
+}
+
+export interface RatingParameter {
+  id: number;
+  name: string;
+  code: string;
+  ratingForId?: number;
+}
+
+export interface RatingValueSubmit {
+  ratingParameterId: number;
+  score: number;
+}
+
+export interface RatingCreateRequest {
+  auctionId: number;
+  ratingForId: number;
+  ratingValues: RatingValueSubmit[];
+  remarks?: string;
+}
+
+export interface RatingParameterAverage {
+  parameterId: number;
+  parameterName: string;
+  averageScore: number;
+  ratingCount: number;
+}
+
+export interface TenantReputation {
+  tenantId: number;
+  averageRating: number;
+  totalRatingsReceived: number;
+  parameterBreakdown: RatingParameterAverage[];
+}
+
+export interface RatingSummary {
+  id: number;
+  auctionId: number;
+  auctionName?: string;
+  submittedByTenantId: number;
+  ratingForId: number;
+  ratingForName?: string;
+  averageScore: number;
+  remarks?: string;
+  createdAt: string;
+}
+
 export type SignalRStatus = 'CONNECTED' | 'CONNECTING' | 'RECONNECTING' | 'DISCONNECTED';
+

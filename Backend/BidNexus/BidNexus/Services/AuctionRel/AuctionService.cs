@@ -2,6 +2,7 @@ using API.Abstraction.AuctionRel;
 using API.Models.AuctionRel;
 using Core.Abstraction.AuctionRelated;
 using Core.Entities.Auction;
+using Core.Enumeration;
 using Core.Models.AuctionRelated;
 
 namespace API.Services.AuctionRel;
@@ -24,7 +25,7 @@ public class AuctionService(IAuctionRepository auctionRepository) : IAuctionServ
             request.OpenToAll,
             request.IsBidPriceHidden,
             request.OrganizationId,
-            request.StatusId
+            request.StatusId == (short)StatusEnum.Authorized && request.OpenToAll ? (short)StatusEnum.Scheduled : request.StatusId
         )
         {
             AuctionRequirements = (request.AuctionRequirements ?? []).Select(r => new AuctionRequirement
@@ -88,6 +89,11 @@ public class AuctionService(IAuctionRepository auctionRepository) : IAuctionServ
     public async Task<List<AuctionGetDataModel>> GetAsync(short categoryId, short pageNo, short pageSize, CancellationToken cancellationToken = default)
     {
         return await _auctionRepository.Get(categoryId, pageNo, pageSize);
+    }
+
+    public async Task<List<AuctionGetDataModel>> GetPendingAsync(short categoryId, short pageNo, short pageSize, CancellationToken cancellationToken = default)
+    {
+        return await _auctionRepository.GetPendingAuctionsAsync(categoryId, pageNo, pageSize, cancellationToken);
     }
 
     public async Task<bool> DeleteAsync(int id, CancellationToken cancellationToken = default)

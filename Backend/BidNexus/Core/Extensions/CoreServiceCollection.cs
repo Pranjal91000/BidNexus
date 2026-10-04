@@ -1,5 +1,4 @@
 using Core.Abstraction.Services;
-using Core.Abstraction.TenantRelated;
 using Core.Services;
 using Core.Entities.TenantRelated;
 using Microsoft.AspNetCore.Identity;
@@ -14,7 +13,9 @@ namespace Core.Extensions
             services.AddHttpContextAccessor();
             services.AddScoped<IJwtHelperService, JwtHelperService>();
             services.AddScoped<IAuthenticationCoreService, AuthenticationCoreService>();
-            services.AddScoped<IAuctionStatementService, AuctionStatementService>();
+            services.AddScoped<IBidCoreService, BidCoreService>();
+            services.AddScoped<IAuctionEngine, AuctionEngine>();
+            services.AddScoped<IAuctionStatementCoreService, AuctionStatementCoreService>();
             services.AddScoped<IPasswordHasher<Tenant>, PasswordHasher<Tenant>>();
             return services;
         }

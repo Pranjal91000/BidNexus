@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
-import { KeyRound, User, Lock, Building, Store, ArrowRight, ShieldCheck, Mail } from 'lucide-react';
+import { KeyRound, User, Lock, Building, Store, ArrowRight, ShieldCheck, Mail, Phone } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { api } from '../../services/api';
 
 interface AuthModalProps {
-  onConnectToken: (token: string) => void;
+  onConnectToken: (token: string, refreshToken?: string, expiresAt?: string, refreshExpiresAt?: string) => void;
+  sessionNotice?: string;
 }
 
-export const AuthModal: React.FC<AuthModalProps> = ({ onConnectToken }) => {
+export const AuthModal: React.FC<AuthModalProps> = ({ onConnectToken, sessionNotice }) => {
   const [tab, setTab] = useState<'token' | 'login' | 'register'>('login');
   const [tokenInput, setTokenInput] = useState('');
   
@@ -20,6 +21,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onConnectToken }) => {
   const [regName, setRegName] = useState('');
   const [regUsername, setRegUsername] = useState('');
   const [regEmail, setRegEmail] = useState('');
+  const [regContactNumber, setRegContactNumber] = useState('');
   const [regPassword, setRegPassword] = useState('');
   const [isOrganization, setIsOrganization] = useState(false);
   const [officialAddress, setOfficialAddress] = useState('');
@@ -48,12 +50,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onConnectToken }) => {
     setError('');
     setLoading(true);
     try {
-      console.log('Attempting login with username:', username);
-      console.log('Password length:', password);
-      const res = await api.login(username, password);
+      const res = await api.login(username.trim(), password);
       const token = res.accessToken || res.token;
       if (token) {
-        onConnectToken(token);
+        onConnectToken(token, res.refreshToken, res.expiresAt, res.refreshTokenExpiresAt);
       } else {
         throw new Error('Authentication succeeded but no access token was returned.');
       }
@@ -74,15 +74,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onConnectToken }) => {
     setLoading(true);
     try {
       await api.register({
-        name: regName || regUsername,
-        contactNumber: '9999999999',
-        emailAddress: regEmail,
-        userName: regUsername,
+        name: regName.trim() || regUsername.trim(),
+        contactNumber: regContactNumber.trim() || 'N/A',
+        emailAddress: regEmail.trim(),
+        userName: regUsername.trim(),
         password: regPassword,
         registerAsOrganization: isOrganization,
-        officialAddress: officialAddress,
+        officialAddress: officialAddress.trim(),
         foregroundImageId: null,
-        about: about,
+        about: about.trim(),
       });
       setSuccessMsg('Registration successful! You can now log in with your credentials.');
       setTab('login');
@@ -129,6 +129,26 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onConnectToken }) => {
           </button>
         </div>
 
+        {sessionNotice && (
+          <div
+            className="bn-auth-notice"
+            style={{
+              background: 'rgba(234, 179, 8, 0.12)',
+              border: '1px solid rgba(234, 179, 8, 0.3)',
+              color: '#fbbf24',
+              padding: '10px 14px',
+              borderRadius: '8px',
+              fontSize: '13px',
+              marginBottom: '16px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+            }}
+          >
+            <Lock size={16} />
+            <span>{sessionNotice}</span>
+          </div>
+        )}
         {error && <div className="bn-auth-error">{error}</div>}
         {successMsg && <div className="bn-auth-success">{successMsg}</div>}
 
@@ -188,6 +208,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onConnectToken }) => {
 
             <div className="bn-grid-2">
               <Input
+                label="Contact / Mobile"
+                type="tel"
+                placeholder="+1 555-0199 or 9876543210"
+                value={regContactNumber}
+                onChange={(e) => setRegContactNumber(e.target.value)}
+                leftIcon={<Phone size={16} />}
+              />
+              <Input
                 label="Username"
                 placeholder="Unique login handle"
                 value={regUsername}
@@ -195,16 +223,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onConnectToken }) => {
                 leftIcon={<User size={16} />}
                 required
               />
-              <Input
-                label="Password"
-                type="password"
-                placeholder="Secure password"
-                value={regPassword}
-                onChange={(e) => setRegPassword(e.target.value)}
-                leftIcon={<Lock size={16} />}
-                required
-              />
             </div>
+            <Input
+              label="Password"
+              type="password"
+              placeholder="Secure password"
+              value={regPassword}
+              onChange={(e) => setRegPassword(e.target.value)}
+              leftIcon={<Lock size={16} />}
+              required
+            />
 
             <div className="bn-field">
               <label className="bn-label">Entity Type</label>

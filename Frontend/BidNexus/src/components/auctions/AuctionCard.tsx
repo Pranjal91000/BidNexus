@@ -1,6 +1,7 @@
 import React from 'react';
 import type { Auction } from '../../types';
 import { Badge } from '../ui/Badge';
+import { Countdown } from '../ui/Countdown';
 import { Calendar, Layers, Eye, ShieldAlert, ArrowRight, Edit, Trash2 } from 'lucide-react';
 import { Button } from '../ui/Button';
 
@@ -30,11 +31,11 @@ export const AuctionCard: React.FC<AuctionCardProps> = ({
       <div className="bn-card-top">
         <div className="bn-flex-center gap-2">
           <Badge tone={auction.statusName}>{auction.statusName || 'Scheduled'}</Badge>
-          <span className="bn-type-badge">
-            {auction.isForwardAuction ? 'FORWARD' : 'REVERSE'} AUCTION
-          </span>
+          <Countdown endTime={auction.auctionEndTime} startTime={auction.auctionStartTime} compact />
         </div>
-        <span className="bn-card-id">#{auction.id}</span>
+        <span className="bn-type-badge">
+          {auction.isForwardAuction ? 'FORWARD' : 'REVERSE'} AUCTION
+        </span>
       </div>
 
       <div className="bn-card-main" onClick={() => onOpen(auction)}>

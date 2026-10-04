@@ -43,6 +43,8 @@ export const TopBar: React.FC<TopBarProps> = ({
         return 'My Bidding Activity';
       case 'statements':
         return 'Auction Statements & Awards';
+      case 'masters':
+        return 'Master Catalog & Data Dictionary';
       case 'workspace':
         return 'Workspace & Tenant Settings';
       default:

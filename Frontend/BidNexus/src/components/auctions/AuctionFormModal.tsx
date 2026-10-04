@@ -3,8 +3,25 @@ import { Modal } from '../ui/Modal';
 import { Input, Select, Textarea } from '../ui/Input';
 import { Button } from '../ui/Button';
 import type { Auction, AuctionCreateRequest, AuctionRequirementSaveRequest, Item, Unit } from '../../types';
-import { Plus, Trash2, Layers, AlertCircle } from 'lucide-react';
+import { Plus, Trash2, Layers, AlertCircle, RefreshCw } from 'lucide-react';
 import { api } from '../../services/api';
+
+const toLocalDateInput = (val?: string | null): string => {
+  if (!val) return new Date().toISOString().slice(0, 10);
+  if (val.length === 10 && val.includes('-')) return val;
+  const d = new Date(val);
+  if (isNaN(d.getTime())) return new Date().toISOString().slice(0, 10);
+  const pad = (n: number) => n.toString().padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+};
+
+const toLocalDatetimeInput = (val?: string | null): string => {
+  if (!val) return '';
+  const d = new Date(val);
+  if (isNaN(d.getTime())) return '';
+  const pad = (n: number) => n.toString().padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+};
 
 interface AuctionFormModalProps {
   isOpen: boolean;
@@ -40,7 +57,7 @@ export const AuctionFormModal: React.FC<AuctionFormModalProps> = ({
   const [openToAll, setOpenToAll] = useState(true);
   const [isBidPriceHidden, setIsBidPriceHidden] = useState(false);
   const [organizationId, setOrganizationId] = useState(userOrgId || 1);
-  const [statusId, setStatusId] = useState(1);
+  const [statusId, setStatusId] = useState(2); // 1: Draft, 2: Authorized
 
   // Requirements list
   const [requirements, setRequirements] = useState<AuctionRequirementSaveRequest[]>([
@@ -50,84 +67,138 @@ export const AuctionFormModal: React.FC<AuctionFormModalProps> = ({
   // Master options
   const [items, setItems] = useState<Item[]>([]);
   const [units, setUnits] = useState<Unit[]>([]);
+  const [loadingMasters, setLoadingMasters] = useState(false);
+  const [masterNotice, setMasterNotice] = useState('');
 
   // Validation & Submit state
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState('');
+  const [loadingDetails, setLoadingDetails] = useState(false);
 
   useEffect(() => {
-    if (isOpen) {
-      loadMasters();
-      if (initialData) {
-        setAuctionName(initialData.auctionName || '');
-        setAbout(initialData.about || '');
-        setDocNoYearly(initialData.docNoYearly || '');
-        setDocDate(initialData.docDate ? initialData.docDate.slice(0, 10) : new Date().toISOString().slice(0, 10));
-        setIsForwardAuction(Boolean(initialData.isForwardAuction));
-        setAuctionStartTime(
-          initialData.auctionStartTime ? new Date(initialData.auctionStartTime).toISOString().slice(0, 16) : ''
-        );
-        setAuctionEndTime(
-          initialData.auctionEndTime ? new Date(initialData.auctionEndTime).toISOString().slice(0, 16) : ''
-        );
-        setOpenToAll(Boolean(initialData.openToAll));
-        setIsBidPriceHidden(Boolean(initialData.isBidPriceHidden));
-        setOrganizationId(initialData.organizationId || userOrgId || 1);
-        setStatusId(initialData.statusId || 1);
+    if (!isOpen) return;
 
-        if (initialData.auctionRequirements && initialData.auctionRequirements.length > 0) {
-          setRequirements(
-            initialData.auctionRequirements.map((r, i) => ({
-              lineNo: r.lineNo || i + 1,
-              itemId: r.itemId || r.item?.id || 1,
-              technicalSpecification: r.technicalSpecification || '',
-              quantity: r.quantity || 1,
-              unitId: r.unitId || r.unit?.id || 1,
-              documentAttachmentId: r.documentAttachmentId || null,
-            }))
-          );
-        }
-      } else {
-        // Reset form defaults for create
-        const now = new Date();
-        const tomorrow = new Date(now.valueOf() + 86400000);
-        const docNo = `AUC/${now.getFullYear()}/${Math.floor(100 + Math.random() * 900)}`;
+    loadMasters();
 
-        setAuctionName('');
-        setAbout('');
-        setDocNoYearly(docNo);
-        setDocDate(now.toISOString().slice(0, 10));
-        setIsForwardAuction(false);
-        setAuctionStartTime(now.toISOString().slice(0, 16));
-        setAuctionEndTime(tomorrow.toISOString().slice(0, 16));
-        setOpenToAll(true);
-        setIsBidPriceHidden(false);
-        setOrganizationId(userOrgId || 1);
-        setStatusId(1);
-        setRequirements([
-          { lineNo: 1, itemId: 1, technicalSpecification: 'Grade A Procurement Spec', quantity: 100, unitId: 1 },
-        ]);
+    const populateAuctionFields = (data: Auction) => {
+      setAuctionName(data.auctionName || '');
+      setAbout(data.about || '');
+      setDocNoYearly(data.docNoYearly || '');
+      setDocDate(toLocalDateInput(data.docDate));
+      setIsForwardAuction(Boolean(data.isForwardAuction));
+      setAuctionStartTime(toLocalDatetimeInput(data.auctionStartTime));
+      setAuctionEndTime(toLocalDatetimeInput(data.auctionEndTime));
+      setOpenToAll(Boolean(data.openToAll));
+      setIsBidPriceHidden(Boolean(data.isBidPriceHidden));
+      setOrganizationId(data.organizationId || data.organization?.id || userOrgId || 1);
+      setStatusId(data.statusId === 1 ? 1 : 2);
+
+      if (data.auctionRequirements && data.auctionRequirements.length > 0) {
+        setRequirements(
+          data.auctionRequirements.map((r, i) => ({
+            lineNo: r.lineNo || i + 1,
+            itemId: r.itemId || r.item?.id || 1,
+            technicalSpecification: r.technicalSpecification || '',
+            quantity: Number(r.quantity) || 1,
+            unitId: r.unitId || r.unit?.id || 1,
+            documentAttachmentId: r.documentAttachmentId || null,
+          }))
+        );
       }
-      setErrors({});
-      setFormError('');
+    };
+
+    if (initialData?.id) {
+      // Pre-fill immediately with initialData so user doesn't see blank inputs
+      populateAuctionFields(initialData);
+
+      // Extract complete authoritative details directly from GetById
+      setLoadingDetails(true);
+      api
+        .getAuctionById(token, initialData.id)
+        .then((fullAuction) => {
+          if (fullAuction) {
+            populateAuctionFields(fullAuction);
+          }
+        })
+        .catch((err) => {
+          console.error('Failed to extract full auction details via GetById:', err);
+        })
+        .finally(() => {
+          setLoadingDetails(false);
+        });
+    } else if (initialData) {
+      populateAuctionFields(initialData);
+    } else {
+      // Reset form defaults for create
+      const now = new Date();
+      const tomorrow = new Date(now.valueOf() + 86400000);
+      const docNo = `AUC/${now.getFullYear()}/${Math.floor(100 + Math.random() * 900)}`;
+
+      setAuctionName('');
+      setAbout('');
+      setDocNoYearly(docNo);
+      setDocDate(toLocalDateInput(now.toISOString()));
+      setIsForwardAuction(false);
+      setAuctionStartTime(toLocalDatetimeInput(now.toISOString()));
+      setAuctionEndTime(toLocalDatetimeInput(tomorrow.toISOString()));
+      setOpenToAll(true);
+      setIsBidPriceHidden(false);
+      setOrganizationId(userOrgId || 1);
+      setStatusId(2); // Default to Authorized (2) or Draft (1)
+      setRequirements([]);
     }
-  }, [isOpen, initialData, token, userOrgId]);
+
+    setErrors({});
+    setFormError('');
+  }, [isOpen, initialData?.id, token, userOrgId]);
 
   const loadMasters = async () => {
+    setLoadingMasters(true);
     try {
-      const [itemList, unitList] = await Promise.all([api.getItems(token), api.getUnits(token)]);
-      setItems(itemList);
-      setUnits(unitList);
-    } catch {
-      // Fallbacks if master endpoint empty
+      const [itemList, unitList] = await Promise.all([
+        api.getItems(token),
+        api.getUnits(token),
+      ]);
+      setItems(itemList || []);
+      setUnits(unitList || []);
+
+      if (!itemList || itemList.length === 0 || !unitList || unitList.length === 0) {
+        setMasterNotice(
+          'Notice: Master Items or Measurement Units are not yet configured for your tenant. Please ensure items and units are registered in your Master Catalog.'
+        );
+      } else {
+        setMasterNotice('');
+      }
+
+      if (!initialData) {
+        if (itemList && itemList.length > 0 && unitList && unitList.length > 0) {
+          setRequirements([
+            {
+              lineNo: 1,
+              itemId: itemList[0].id,
+              technicalSpecification: 'Standard Specification',
+              quantity: 100,
+              unitId: unitList[0].id,
+            },
+          ]);
+        }
+      }
+    } catch (err: any) {
+      setMasterNotice('Could not load master catalog: ' + (err.message || 'Unknown error'));
+    } finally {
+      setLoadingMasters(false);
     }
   };
 
   const addRequirement = () => {
+    if (items.length === 0 || units.length === 0) {
+      setFormError('Cannot add requirements without active items and units defined in master data.');
+      return;
+    }
     const nextLineNo = requirements.length + 1;
-    const defaultItemId = items[0]?.id || 1;
-    const defaultUnitId = units[0]?.id || 1;
+    const defaultItemId = items[0].id;
+    const defaultUnitId = units[0].id;
     setRequirements([
       ...requirements,
       { lineNo: nextLineNo, itemId: defaultItemId, technicalSpecification: '', quantity: 1, unitId: defaultUnitId },
@@ -214,23 +285,13 @@ export const AuctionFormModal: React.FC<AuctionFormModalProps> = ({
     }
   };
 
-  const defaultItemOptions = items.length
+  const itemOptions = items.length
     ? items.map((i) => ({ value: i.id, label: i.itemName || i.name || `Item #${i.id}` }))
-    : [
-        { value: 1, label: 'Structural Steel Plate Grade A36' },
-        { value: 2, label: 'Industrial Electric Motor 50HP' },
-        { value: 3, label: 'Copper Cathode Grade A' },
-        { value: 4, label: 'Diesel Fuel EN590 10PPM' },
-      ];
+    : [{ value: 0, label: '-- No Items Found in Tenant Master --' }];
 
-  const defaultUnitOptions = units.length
+  const unitOptions = units.length
     ? units.map((u) => ({ value: u.id, label: u.unitName || u.name || u.alias || `Unit #${u.id}` }))
-    : [
-        { value: 1, label: 'Metric Ton (MT)' },
-        { value: 2, label: 'Pieces (PCS)' },
-        { value: 3, label: 'Kilo Liters (KL)' },
-        { value: 4, label: 'Meters (M)' },
-      ];
+    : [{ value: 0, label: '-- No Units Found in Tenant Master --' }];
 
   return (
     <Modal
@@ -244,13 +305,26 @@ export const AuctionFormModal: React.FC<AuctionFormModalProps> = ({
           <Button variant="outline" onClick={onClose} disabled={submitting}>
             Cancel
           </Button>
-          <Button variant="primary" onClick={handleSubmit} loading={submitting}>
+          <Button variant="primary" onClick={handleSubmit} loading={submitting || loadingMasters || loadingDetails} disabled={items.length === 0 || units.length === 0 || loadingMasters || loadingDetails}>
             {isEdit ? 'Update Auction' : 'Create & Schedule Auction'}
           </Button>
         </div>
       }
     >
       <form onSubmit={handleSubmit} className="bn-form-stack">
+        {loadingDetails && (
+          <div className="bn-alert bn-alert-info bn-mb-3" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 0.8rem', borderRadius: '6px', background: 'rgba(6, 182, 212, 0.12)', border: '1px solid rgba(6, 182, 212, 0.3)', color: '#06b6d4', fontSize: '0.82rem' }}>
+            <RefreshCw size={15} className="bn-spin" />
+            <span>Extracting complete auction specifications and requirements from server...</span>
+          </div>
+        )}
+
+        {masterNotice && (
+          <div className="bn-auth-error" style={{ background: 'rgba(234, 179, 8, 0.1)', borderColor: 'rgba(234, 179, 8, 0.4)', color: '#eab308' }}>
+            <AlertCircle size={16} /> {masterNotice}
+          </div>
+        )}
+
         {formError && (
           <div className="bn-auth-error">
             <AlertCircle size={16} /> {formError}
@@ -314,7 +388,17 @@ export const AuctionFormModal: React.FC<AuctionFormModalProps> = ({
           />
         </div>
 
-        <div className="bn-grid-2">
+        <div className="bn-grid-3">
+          <Select
+            label="Auction Status"
+            value={String(statusId)}
+            onChange={(e) => setStatusId(Number(e.target.value))}
+            options={[
+              { value: '1', label: 'Draft (Working draft, hidden from vendors)' },
+              { value: '2', label: 'Authorized (Authorized for procurement / bidding)' },
+            ]}
+          />
+
           <Select
             label="Vendor Access Rules"
             value={openToAll ? 'true' : 'false'}
@@ -362,12 +446,12 @@ export const AuctionFormModal: React.FC<AuctionFormModalProps> = ({
             <table className="bn-table bn-req-table">
               <thead>
                 <tr>
-                  <th style={{ width: '50px' }}>Line</th>
-                  <th style={{ width: '220px' }}>Item</th>
+                  <th style={{ width: '45px' }}>Line</th>
+                  <th style={{ width: '180px' }}>Item</th>
                   <th>Technical Specification</th>
-                  <th style={{ width: '110px' }}>Quantity</th>
-                  <th style={{ width: '160px' }}>Unit</th>
-                  <th style={{ width: '50px' }}></th>
+                  <th style={{ width: '90px' }}>Quantity</th>
+                  <th style={{ width: '130px' }}>Unit</th>
+                  <th style={{ width: '45px' }}></th>
                 </tr>
               </thead>
               <tbody>
@@ -382,7 +466,7 @@ export const AuctionFormModal: React.FC<AuctionFormModalProps> = ({
                         value={req.itemId}
                         onChange={(e) => updateRequirement(idx, 'itemId', Number(e.target.value))}
                       >
-                        {defaultItemOptions.map((opt) => (
+                        {itemOptions.map((opt) => (
                           <option key={opt.value} value={opt.value}>
                             {opt.label}
                           </option>
@@ -417,7 +501,7 @@ export const AuctionFormModal: React.FC<AuctionFormModalProps> = ({
                         value={req.unitId}
                         onChange={(e) => updateRequirement(idx, 'unitId', Number(e.target.value))}
                       >
-                        {defaultUnitOptions.map((opt) => (
+                        {unitOptions.map((opt) => (
                           <option key={opt.value} value={opt.value}>
                             {opt.label}
                           </option>
