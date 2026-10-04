@@ -1,0 +1,17 @@
+﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <linearGradient id="g_9f14361fdf6844e0a62e3b3801e4d0a9" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#c2410c" />
+      <stop offset="100%" stop-color="#0f172a" />
+    </linearGradient>
+  </defs>
+  <rect width="256" height="256" rx="24" fill="url(#g_9f14361fdf6844e0a62e3b3801e4d0a9)" />
+  <circle cx="128" cy="95" r="48" fill="#ffffff" fill-opacity="0.12" stroke="#ffffff" stroke-width="1.5" stroke-opacity="0.2" />
+  <text x="128" y="102" font-family="system-ui, -apple-system, sans-serif" font-size="24" font-weight="900" fill="#ffffff" text-anchor="middle" dominant-baseline="middle">CRN</text>
+  <g transform="translate(16, 172)">
+    <rect x="0" y="0" width="70" height="18" rx="5" fill="#ffffff" fill-opacity="0.2" />
+    <text x="35" y="13" font-family="ui-monospace, monospace" font-size="9" font-weight="700" fill="#ffffff" text-anchor="middle">CRN-EOT-20T</text>
+    <text x="80" y="13" font-family="system-ui, -apple-system, sans-serif" font-size="9" font-weight="800" fill="#ffffff" fill-opacity="0.7" letter-spacing="0.8">CRANES</text>
+    <text x="0" y="40" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="750" fill="#ffffff">20 Ton Double Girder Ele...</text>
+  </g>
+</svg>

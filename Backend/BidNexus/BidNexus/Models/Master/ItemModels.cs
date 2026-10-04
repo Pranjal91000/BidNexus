@@ -39,6 +39,7 @@ public class ItemResponse
     public short CategoryId { get; set; }
     public string? ItemDescription { get; set; }
     public int? DocAttachmentId { get; set; }
+    public string? DocAttachmentUrl => DocAttachmentId.HasValue ? $"/api/attachments/{DocAttachmentId.Value}" : null;
     public short StatusId { get; set; }
     public string? StatusRemarks { get; set; }
     public List<int> UnitIds { get; set; } = [];

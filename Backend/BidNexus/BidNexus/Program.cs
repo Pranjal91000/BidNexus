@@ -44,6 +44,7 @@ builder.Services.AddSwaggerDocumentation();
 var app = builder.Build();
 
 app.UseForwardedHeaders();
+app.UseStaticFiles();
 
 using (var scope = app.Services.CreateScope())
 {

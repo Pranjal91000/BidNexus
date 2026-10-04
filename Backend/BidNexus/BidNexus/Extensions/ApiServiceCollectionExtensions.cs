@@ -21,6 +21,10 @@ namespace API.Extensions
             // Auction Services
             services.AddAuctionApiServices(configuration);
 
+            // Attachment & Profile Services
+            services.AddScoped<API.Abstraction.Utilities.IAttachmentService, API.Services.Utilities.AttachmentService>();
+            services.AddScoped<API.Abstraction.Profile.IProfileService, API.Services.Profile.ProfileService>();
+
             return services;
         }
     }

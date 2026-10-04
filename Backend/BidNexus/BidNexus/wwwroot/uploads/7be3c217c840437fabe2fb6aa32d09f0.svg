@@ -1,0 +1,27 @@
+﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 240" width="800" height="240">
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#18181b" />
+      <stop offset="100%" stop-color="#a855f7" />
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="6" stdDeviation="8" flood-opacity="0.3" />
+    </filter>
+  </defs>
+  <rect width="800" height="240" fill="url(#grad)" />
+  <circle cx="720" cy="40" r="120" fill="white" fill-opacity="0.04" />
+  <circle cx="100" cy="220" r="160" fill="white" fill-opacity="0.03" />
+  <g transform="translate(48, 50)">
+    <rect x="0" y="0" width="72" height="72" rx="16" fill="#ffffff" fill-opacity="0.15" stroke="#ffffff" stroke-opacity="0.3" stroke-width="2" filter="url(#shadow)" />
+    <text x="36" y="47" font-family="system-ui, -apple-system, sans-serif" font-size="32" text-anchor="middle" dominant-baseline="middle">🛰️</text>
+    <text x="92" y="28" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="800" fill="#ffffff" fill-opacity="0.8" letter-spacing="2">VERIFIED ENTERPRISE BUYER</text>
+    <text x="92" y="56" font-family="system-ui, -apple-system, sans-serif" font-size="24" font-weight="800" fill="#ffffff">Godrej Precision Engineering</text>
+  </g>
+  <g transform="translate(48, 155)">
+    <text x="0" y="0" font-family="system-ui, -apple-system, sans-serif" font-size="13" fill="#ffffff" fill-opacity="0.85">Specialized engineering division producing mission-critical aerospace modules, satellite p…</text>
+    <rect x="0" y="18" width="140" height="26" rx="6" fill="#ffffff" fill-opacity="0.2" />
+    <text x="70" y="35" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="700" fill="#ffffff" text-anchor="middle">BIDNEXUS VERIFIED</text>
+    <rect x="150" y="18" width="150" height="26" rx="6" fill="#ffffff" fill-opacity="0.2" />
+    <text x="225" y="35" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="700" fill="#ffffff" text-anchor="middle">ISO 9001 COMPLIANT</text>
+  </g>
+</svg>
