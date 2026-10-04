@@ -142,25 +142,25 @@ SELECT setval(
 -- ------------------------------------------------------------------------------
 -- Metric breakdown parameters evaluated for each target role.
 -- ------------------------------------------------------------------------------
-INSERT INTO "GlobalData"."RatingParameter" ("Id", "ParameterName", "RatingForId", "Inactive")
+INSERT INTO "GlobalData"."RatingParameter" ("Id", "ParameterName", "RatingFor", "Inactive")
 VALUES
-    -- Vendor Rating Parameters (RatingForId = 1)
-    (1, 'Quality & Specification Compliance', 1, false),
-    (2, 'Delivery & Schedule Adherence', 1, false),
-    (3, 'Commercial & Pricing Competitiveness', 1, false),
-    (4, 'Communication & Responsiveness', 1, false),
-    (5, 'Packaging & Documentation', 1, false),
+    -- Vendor Rating Parameters (RatingFor = true)
+    (1, 'Quality & Specification Compliance', true, false),
+    (2, 'Delivery & Schedule Adherence', true, false),
+    (3, 'Commercial & Pricing Competitiveness', true, false),
+    (4, 'Communication & Responsiveness', true, false),
+    (5, 'Packaging & Documentation', true, false),
 
-    -- Organization Rating Parameters (RatingForId = 2)
-    (6, 'Payment Promptness & Terms Adherence', 2, false),
-    (7, 'Clarity of Requirements & Scope', 2, false),
-    (8, 'Process Fairness & Transparency', 2, false),
-    (9, 'Coordination & Operational Support', 2, false),
-    (10, 'Dispute Resolution & Professionalism', 2, false)
+    -- Organization Rating Parameters (RatingFor = false)
+    (6, 'Payment Promptness & Terms Adherence', false, false),
+    (7, 'Clarity of Requirements & Scope', false, false),
+    (8, 'Process Fairness & Transparency', false, false),
+    (9, 'Coordination & Operational Support', false, false),
+    (10, 'Dispute Resolution & Professionalism', false, false)
 ON CONFLICT ("Id") DO UPDATE
 SET
     "ParameterName" = EXCLUDED."ParameterName",
-    "RatingForId" = EXCLUDED."RatingForId",
+    "RatingFor" = EXCLUDED."RatingFor",
     "Inactive" = EXCLUDED."Inactive";
 
 SELECT setval(
