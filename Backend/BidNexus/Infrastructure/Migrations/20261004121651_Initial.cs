@@ -97,22 +97,6 @@ namespace Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "RatingParameter",
-                schema: "GlobalData",
-                columns: table => new
-                {
-                    Id = table.Column<short>(type: "smallint", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    ParameterName = table.Column<string>(type: "text", nullable: false),
-                    RatingFor = table.Column<bool>(type: "boolean", nullable: false),
-                    Inactive = table.Column<bool>(type: "boolean", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_RatingParameter", x => x.Id);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "Status",
                 schema: "GlobalData",
                 columns: table => new
@@ -210,6 +194,29 @@ namespace Infrastructure.Migrations
                         column: x => x.CategoryId,
                         principalSchema: "GlobalData",
                         principalTable: "Category",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "RatingParameter",
+                schema: "GlobalData",
+                columns: table => new
+                {
+                    Id = table.Column<short>(type: "smallint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    ParameterName = table.Column<string>(type: "text", nullable: false),
+                    RatingForId = table.Column<short>(type: "smallint", nullable: false),
+                    Inactive = table.Column<bool>(type: "boolean", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_RatingParameter", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_RatingParameter_RatingFor_RatingForId",
+                        column: x => x.RatingForId,
+                        principalSchema: "GlobalData",
+                        principalTable: "RatingFor",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 });
@@ -783,10 +790,11 @@ namespace Infrastructure.Migrations
                 column: "VendorId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Bid_AuctionId",
+                name: "IX_Bid_AuctionId_VendorId_BidRevisionNo",
                 schema: "AuctionRel",
                 table: "Bid",
-                column: "AuctionId");
+                columns: new[] { "AuctionId", "VendorId", "BidRevisionNo" },
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_Bid_MainBidId",
@@ -900,6 +908,12 @@ namespace Infrastructure.Migrations
                 column: "SubmittedByTenant");
 
             migrationBuilder.CreateIndex(
+                name: "IX_RatingParameter_RatingForId",
+                schema: "GlobalData",
+                table: "RatingParameter",
+                column: "RatingForId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_RatingValue_RatingForId_RatingAuctionId_RatingAgainstTenant~",
                 schema: "Utilities",
                 table: "RatingValue",
@@ -1007,10 +1021,6 @@ namespace Infrastructure.Migrations
                 schema: "Auth");
 
             migrationBuilder.DropTable(
-                name: "RatingFor",
-                schema: "GlobalData");
-
-            migrationBuilder.DropTable(
                 name: "RatingValue",
                 schema: "Utilities");
 
@@ -1048,6 +1058,10 @@ namespace Infrastructure.Migrations
 
             migrationBuilder.DropTable(
                 name: "TaxNature",
+                schema: "GlobalData");
+
+            migrationBuilder.DropTable(
+                name: "RatingFor",
                 schema: "GlobalData");
 
             migrationBuilder.DropTable(
