@@ -4,6 +4,7 @@ import { errorMessage } from '../../lib/appContext';
 import { Button } from '../../components/ui/Button';
 import { TextField, TextAreaField } from '../../components/ui/Field';
 import { Callout } from '../../components/ui/States';
+import './AuthScreen.css';
 
 interface AuthScreenProps {
   notice?: string;
@@ -20,6 +21,12 @@ export function AuthScreen({ notice, onSignedIn }: AuthScreenProps) {
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+
+  // Demo accounts are intentionally public and are used only for the deployed showcase environment.
+  const DEMO_ACCOUNTS = {
+    organization: { username: 'tatasteel', password: 'Password@123' },
+    vendor: { username: 'vendor_deltamach', password: 'Password@123' },
+  } as const;
 
   const [asOrg, setAsOrg] = useState(false);
   const [name, setName] = useState('');
@@ -49,6 +56,23 @@ export function AuthScreen({ notice, onSignedIn }: AuthScreenProps) {
       onSignedIn(token, res.refreshToken, res.refreshTokenExpiresAt);
     } catch (err) {
       setError(errorMessage(err, 'Incorrect username or password.'));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const signInAsDemo = async (type: keyof typeof DEMO_ACCOUNTS) => {
+    const demo = DEMO_ACCOUNTS[type];
+    setBusy(true);
+    setError('');
+    setInfo('');
+    try {
+      const res = await api.login(demo.username, demo.password);
+      const token = res.accessToken || res.token;
+      if (!token) throw new Error('Demo sign-in succeeded but no access token was returned.');
+      onSignedIn(token, res.refreshToken, res.refreshTokenExpiresAt);
+    } catch (err) {
+      setError(errorMessage(err, 'Demo sign-in is currently unavailable.'));
     } finally {
       setBusy(false);
     }
@@ -112,6 +136,36 @@ export function AuthScreen({ notice, onSignedIn }: AuthScreenProps) {
             <Button type="submit" variant="primary" size="lg" block loading={busy}>
               Sign in
             </Button>
+
+            <div className="demo-login" aria-label="Demo access">
+              <div className="demo-login__header">
+                <span className="strong">Explore the demo</span>
+                <span className="small muted">Use a prepared account</span>
+              </div>
+              <div className="demo-login__actions">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="md"
+                  block
+                  disabled={busy}
+                  onClick={() => signInAsDemo('organization')}
+                >
+                  Demo as Organization
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="md"
+                  block
+                  disabled={busy}
+                  onClick={() => signInAsDemo('vendor')}
+                >
+                  Demo as Vendor
+                </Button>
+              </div>
+            </div>
+
             <p className="small muted" style={{ textAlign: 'center' }}>
               New to BidNexus?{' '}
               <button type="button" className="link-btn accent" onClick={() => switchMode('register')}>
