@@ -46,6 +46,7 @@ var app = builder.Build();
 
 app.UseForwardedHeaders();
 app.UseMiddleware<GlobalExceptionHandlerMiddleware>();
+app.UseStaticFiles();
 
 using (var scope = app.Services.CreateScope())
 {

@@ -25,7 +25,7 @@ export const OrganizationDashboard: React.FC<OrganizationDashboardProps> = ({
   onGoToRegister,
 }) => {
   const liveAuctions = auctions.filter((a) => toneFromStatus(a.statusName) === 'live');
-  const scheduledAuctions = auctions.filter((a) => toneFromStatus(a.statusName) === 'scheduled');
+  const scheduledAuctions = auctions.filter((a) => toneFromStatus(a.statusName) === 'upcoming');
   const closedAuctions = auctions.filter((a) => toneFromStatus(a.statusName) === 'closed');
 
   // Attention required: Auctions closing within 24h or active with 0 bids

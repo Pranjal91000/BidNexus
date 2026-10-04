@@ -4,10 +4,27 @@ import { clock, relative } from '../../lib/format';
 const SOON_MS = 5 * 60 * 1000;
 
 /** Inline "Ends in 12:48" text. Switches to orange in the last five minutes. */
-export function Countdown({ to, prefix = 'Ends in', endedLabel = 'Ended' }: { to: string; prefix?: string; endedLabel?: string }) {
+export function Countdown({
+  to,
+  endTime,
+  prefix = 'Ends in',
+  endedLabel = 'Ended',
+  compact: _compact,
+  startTime: _startTime,
+  size: _size,
+}: {
+  to?: string;
+  endTime?: string;
+  prefix?: string;
+  endedLabel?: string;
+  compact?: boolean;
+  startTime?: string;
+  size?: string;
+}) {
+  const target = to || endTime || '';
   const now = useNow();
-  const ms = new Date(to).getTime() - now;
-  if (ms <= 0) return <span className="muted">{endedLabel}</span>;
+  const ms = target ? new Date(target).getTime() - now : 0;
+  if (!target || ms <= 0) return <span className="muted">{endedLabel}</span>;
   const soon = ms < SOON_MS;
   const text = ms > 24 * 3600 * 1000 ? relative(ms) : clock(ms);
   return <span className={`num${soon ? ' warn strong' : ''}`}>{prefix} {text}</span>;

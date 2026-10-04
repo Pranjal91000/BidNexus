@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
@@ -10,18 +10,33 @@ namespace Infrastructure.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "RatingFor",
-                schema: "GlobalData",
-                table: "RatingParameter");
-
             migrationBuilder.AddColumn<short>(
                 name: "RatingForId",
                 schema: "GlobalData",
                 table: "RatingParameter",
                 type: "smallint",
                 nullable: false,
-                defaultValue: (short)0);
+                defaultValue: (short)1);
+
+            migrationBuilder.Sql(@"
+                DO $$
+                BEGIN
+                    IF EXISTS (
+                        SELECT 1 FROM information_schema.columns 
+                        WHERE table_schema = 'GlobalData' 
+                          AND table_name = 'RatingParameter' 
+                          AND column_name = 'RatingFor'
+                    ) THEN
+                        UPDATE ""GlobalData"".""RatingParameter""
+                        SET ""RatingForId"" = CASE WHEN ""RatingFor"" = true THEN 1 ELSE 2 END;
+                    END IF;
+                END $$;
+            ");
+
+            migrationBuilder.DropColumn(
+                name: "RatingFor",
+                schema: "GlobalData",
+                table: "RatingParameter");
 
             migrationBuilder.CreateIndex(
                 name: "IX_RatingParameter_RatingForId",

@@ -37,6 +37,7 @@ public class AppDbContext(
     public DbSet<Vendor> Vendors => Set<Vendor>();
 
     // Utilities
+    public DbSet<Attachment> Attachments => Set<Attachment>();
     public DbSet<Rating> Ratings => Set<Rating>();
     public DbSet<RatingValue> RatingValues => Set<RatingValue>();
 

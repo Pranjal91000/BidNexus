@@ -149,7 +149,8 @@ namespace Infrastructure.Repository.AuctionRel
                         Id = r.Item.Id,
                         Name = r.Item.Name,
                         Code = r.Item.Code,
-                        CategoryId = r.Item.CategoryId
+                        CategoryId = r.Item.CategoryId,
+                        DocAttachmentId = r.Item.DocAttachmentId
                     },
                     Unit = new UnitDataModel
                     {
@@ -361,7 +362,8 @@ namespace Infrastructure.Repository.AuctionRel
                             Id = r.Item.Id,
                             Name = r.Item.Name,
                             Code = r.Item.Code,
-                            CategoryId = r.Item.CategoryId
+                            CategoryId = r.Item.CategoryId,
+                            DocAttachmentId = r.Item.DocAttachmentId
                         },
                         Unit = new UnitDataModel
                         {

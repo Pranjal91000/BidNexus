@@ -1,0 +1,33 @@
+﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 360" width="1200" height="360">
+  <defs>
+    <linearGradient id="bg_f45b228c4a064daea727bf5b3e45c062" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#065f46" />
+      <stop offset="45%" stop-color="#0f172a" />
+      <stop offset="100%" stop-color="#020617" />
+    </linearGradient>
+    <linearGradient id="glow_f45b228c4a064daea727bf5b3e45c062" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.25" />
+      <stop offset="100%" stop-color="#818cf8" stop-opacity="0" />
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="360" rx="16" fill="url(#bg_f45b228c4a064daea727bf5b3e45c062)" />
+  <rect width="1200" height="360" rx="16" fill="url(#glow_f45b228c4a064daea727bf5b3e45c062)" />
+  <!-- Grid accents -->
+  <circle cx="1050" cy="180" r="160" fill="none" stroke="#ffffff" stroke-opacity="0.04" stroke-width="2" />
+  <circle cx="1050" cy="180" r="240" fill="none" stroke="#ffffff" stroke-opacity="0.03" stroke-width="2" />
+  <circle cx="1050" cy="180" r="320" fill="none" stroke="#ffffff" stroke-opacity="0.02" stroke-width="2" />
+  
+  <g transform="translate(64, 110)">
+    <!-- Monogram badge -->
+    <rect x="0" y="0" width="140" height="140" rx="28" fill="#ffffff" fill-opacity="0.08" stroke="#ffffff" stroke-opacity="0.2" stroke-width="2" />
+    <text x="70" y="80" font-family="system-ui, -apple-system, sans-serif" font-size="44" font-weight="900" fill="#ffffff" text-anchor="middle">SEI</text>
+    
+    <!-- Title & Tag -->
+    <g transform="translate(180, 20)">
+      <rect x="0" y="0" width="160" height="26" rx="6" fill="#38bdf8" fill-opacity="0.2" stroke="#38bdf8" stroke-opacity="0.3" stroke-width="1" />
+      <text x="80" y="17" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="800" fill="#38bdf8" text-anchor="middle" letter-spacing="1">VERIFIED BUYER</text>
+      <text x="0" y="64" font-family="system-ui, -apple-system, sans-serif" font-size="36" font-weight="800" fill="#ffffff">Siemens Energy India</text>
+      <text x="0" y="94" font-family="system-ui, -apple-system, sans-serif" font-size="15" font-weight="500" fill="#94a3b8">Enterprise Procurement &amp; Auction Sponsor</text>
+    </g>
+  </g>
+</svg>

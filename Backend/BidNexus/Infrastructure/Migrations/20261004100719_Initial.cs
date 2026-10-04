@@ -7,11 +7,14 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class initial : Migration
+    public partial class Initial : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.EnsureSchema(
+                name: "Utilities");
+
             migrationBuilder.EnsureSchema(
                 name: "AuctionRel");
 
@@ -27,8 +30,25 @@ namespace Infrastructure.Migrations
             migrationBuilder.EnsureSchema(
                 name: "TenantRel");
 
-            migrationBuilder.EnsureSchema(
-                name: "Utilities");
+            migrationBuilder.CreateTable(
+                name: "Attachment",
+                schema: "Utilities",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    TenantId = table.Column<int>(type: "integer", nullable: false),
+                    OriginalFileName = table.Column<string>(type: "character varying(260)", maxLength: 260, nullable: false),
+                    StoredFileName = table.Column<string>(type: "character varying(260)", maxLength: 260, nullable: false),
+                    ContentType = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    FileSize = table.Column<long>(type: "bigint", nullable: false),
+                    RelativePath = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: false),
+                    CreatedDateTime = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Attachment", x => x.Id);
+                });
 
             migrationBuilder.CreateTable(
                 name: "Category",
@@ -693,6 +713,12 @@ namespace Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateIndex(
+                name: "IX_Attachment_TenantId",
+                schema: "Utilities",
+                table: "Attachment",
+                column: "TenantId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Auction_OrganizationId",
                 schema: "AuctionRel",
                 table: "Auction",
@@ -960,6 +986,10 @@ namespace Infrastructure.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropTable(
+                name: "Attachment",
+                schema: "Utilities");
+
             migrationBuilder.DropTable(
                 name: "AuctionStatement",
                 schema: "AuctionRel");

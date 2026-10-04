@@ -8,7 +8,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Core.Abstraction.GlobalData;
 using Microsoft.Extensions.Configuration;
 using Core.Abstraction.Master;
+using Core.Abstraction.Utilities;
 using Infrastructure.Repository.Master;
+using Infrastructure.Repository.Utilities;
 using Infrastructure.Extensions.AuctionRel;
 
 namespace Infrastructure.Extensions
@@ -44,6 +46,7 @@ namespace Infrastructure.Extensions
             services.AddScoped<IItemRepository, ItemRepository>();
             services.AddScoped<ITaxMasterRepository, TaxMasterRepository>();
             services.AddScoped<Core.Abstraction.Utilities.IRatingRepository, Infrastructure.Repository.Utilities.RatingRepository>();
+            services.AddScoped<IAttachmentRepository, AttachmentRepository>();
 
             services.AddAuctionInfrastructure();
 

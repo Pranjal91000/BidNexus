@@ -1,7 +1,7 @@
 import type { ButtonHTMLAttributes, ReactNode } from 'react';
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'ghost' | 'danger';
+  variant?: 'primary' | 'secondary' | 'ghost' | 'danger' | 'outline';
   size?: 'sm' | 'md' | 'lg';
   loading?: boolean;
   icon?: ReactNode;
@@ -20,7 +20,8 @@ export function Button({
   type = 'button',
   ...rest
 }: ButtonProps) {
-  const cls = ['btn', `btn--${variant}`, size !== 'md' && `btn--${size}`, block && 'btn--block', className]
+  const resolvedVariant = variant === 'outline' ? 'secondary' : variant;
+  const cls = ['btn', `btn--${resolvedVariant}`, variant === 'outline' && 'btn--outline', size !== 'md' && `btn--${size}`, block && 'btn--block', className]
     .filter(Boolean)
     .join(' ');
   return (

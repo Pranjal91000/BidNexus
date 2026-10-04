@@ -61,7 +61,7 @@ export const AuctionRegister: React.FC<AuctionRegisterProps> = ({
         // Status filter
         const tone = toneFromStatus(a.statusName);
         if (statusFilter === 'LIVE' && tone !== 'live') return false;
-        if (statusFilter === 'SCHEDULED' && tone !== 'scheduled') return false;
+        if (statusFilter === 'SCHEDULED' && tone !== 'upcoming') return false;
         if ((statusFilter === 'CLOSED' || statusFilter === 'COMPLETED') && tone !== 'closed') return false;
 
         // Type filter

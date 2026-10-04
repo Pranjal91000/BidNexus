@@ -14,6 +14,7 @@ import { AuctionDetail } from './features/auctions/detail/AuctionDetail';
 import { AuctionFormModal } from './features/auctions/AuctionFormModal';
 import { MastersPage } from './features/masters/MastersPage';
 import { ProfilePage } from './features/profile/ProfilePage';
+import './App.css';
 
 const TOKEN_KEY = 'bidnexus_token';
 const REFRESH_KEY = 'bidnexus_refresh_token';

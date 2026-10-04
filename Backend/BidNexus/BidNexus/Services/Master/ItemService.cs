@@ -1,4 +1,5 @@
 using API.Abstraction.Master;
+using API.Abstraction.Utilities;
 using API.Models.Master;
 using Core.Abstraction.Master;
 using Core.Abstraction.Services;
@@ -9,10 +10,12 @@ namespace API.Services.Master;
 
 public class ItemService(
     IItemRepository itemRepository,
-    IJwtHelperService jwtHelper) : IItemService
+    IJwtHelperService jwtHelper,
+    IAttachmentService attachmentService) : IItemService
 {
     private readonly IItemRepository _itemRepository = itemRepository;
     private readonly IJwtHelperService _jwtHelper = jwtHelper;
+    private readonly IAttachmentService _attachmentService = attachmentService;
 
     public async Task<IReadOnlyList<ItemResponse>> GetAllAsync(CancellationToken cancellationToken = default)
     {
@@ -102,6 +105,11 @@ public class ItemService(
         if (codeExists)
             throw new ConflictException($"Item with code '{request.Code}' already exists for this tenant.");
 
+        if (item.DocAttachmentId.HasValue && item.DocAttachmentId != request.DocAttachmentId)
+        {
+            await _attachmentService.DeleteAttachmentAsync(item.DocAttachmentId.Value, cancellationToken);
+        }
+
         item.Name = request.Name.Trim();
         item.Code = request.Code.Trim().ToUpperInvariant();
         item.CategoryId = request.CategoryId;
@@ -133,6 +141,11 @@ public class ItemService(
     {
         var item = await _itemRepository.GetByIdAsync(id, cancellationToken)
             ?? throw new NotFoundException($"Item with ID {id} not found.");
+
+        if (item.DocAttachmentId.HasValue)
+        {
+            await _attachmentService.DeleteAttachmentAsync(item.DocAttachmentId.Value, cancellationToken);
+        }
 
         return await _itemRepository.DeleteAsync(id, cancellationToken);
     }

@@ -1,6 +1,6 @@
 export type Role = 'Vendor' | 'Organization' | 'Unknown';
 
-export type Page = 'overview' | 'auctions' | 'masters' | 'profile';
+export type Page = 'overview' | 'auctions' | 'masters' | 'profile' | 'bids' | 'statements' | 'workspace';
 
 export interface Claims {
   role: Role;
@@ -32,6 +32,7 @@ export interface Item {
   statusId?: number;
   applicableUnits?: any[];
   unitIds?: number[];
+  docAttachmentId?: number | null;
 }
 
 export interface TaxMaster {
