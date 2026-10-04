@@ -7,6 +7,10 @@ import type {
   Bid,
   BidCreateRequest,
   Statement,
+  VendorAuctionResult,
+  BidActivity,
+  OrganizationDashboard,
+  VendorDashboard,
   Item,
   Unit,
   GlobalCategory,
@@ -268,7 +272,24 @@ export const api = {
     return request<Statement[]>(`/api/auctions/${auctionId}/statement`, token);
   },
 
+  getMyResult: async (token: string, auctionId: number): Promise<VendorAuctionResult> => {
+    return request<VendorAuctionResult>(`/api/auctions/${auctionId}/my-result`, token);
+  },
+
+  // Dashboards
+  getOrganizationDashboard: async (token: string): Promise<OrganizationDashboard> => {
+    return request<OrganizationDashboard>('/api/dashboard/organization', token);
+  },
+
+  getVendorDashboard: async (token: string): Promise<VendorDashboard> => {
+    return request<VendorDashboard>('/api/dashboard/vendor', token);
+  },
+
   // Bids
+  getBidActivity: async (token: string, auctionId: number): Promise<BidActivity[]> => {
+    return request<BidActivity[]>(`/api/bids/auction/${auctionId}/activity`, token);
+  },
+
   submitBid: async (token: string, data: BidCreateRequest): Promise<Bid> => {
     return request<Bid>('/api/bids', token, {
       method: 'POST',

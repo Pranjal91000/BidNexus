@@ -238,7 +238,7 @@ namespace Infrastructure.Repository.AuctionRel
                     }).ToList()
                 }).ToListAsync();
 
-            return data;
+            return await MaskForCallerAsync(auctionId, data);
         }
 
         public async Task<List<BidDataModel>> GetBidHistory(int vendorId, int auctionId)
@@ -399,7 +399,7 @@ namespace Infrastructure.Repository.AuctionRel
                     }).ToList()
                 }).ToListAsync();
 
-            return data;
+            return await MaskForCallerAsync(auctionId, data);
         }
 
         public async Task<BidDataModel> GetById(long BidId)
@@ -586,6 +586,115 @@ namespace Infrastructure.Repository.AuctionRel
                     }).ToList()
                 })
                 .FirstOrDefaultAsync();
+        }
+        /// <summary>
+        /// Vendors must never see competitors' identities or line rates, and must not see
+        /// competitors' amounts when the auction hides prices. Organisations see everything.
+        /// </summary>
+        private async Task<List<BidDataModel>> MaskForCallerAsync(int auctionId, List<BidDataModel> bids)
+        {
+            var role = _jwtHelper.GetRole();
+            if (!string.Equals(role, "Vendor", StringComparison.OrdinalIgnoreCase))
+                return bids;
+
+            var callerVendorId = _jwtHelper.GetUserId();
+            var pricesHidden = await _appDbContext.Auctions
+                .AsNoTracking()
+                .Where(a => a.Id == auctionId)
+                .Select(a => a.IsBidPriceHidden)
+                .FirstOrDefaultAsync();
+
+            var position = 0;
+            foreach (var bid in bids)
+            {
+                position++;
+                if (bid.VendorId == callerVendorId)
+                    continue;
+
+                bid.VendorId = 0;
+                bid.Vendor = new Core.Models.Tenant.VendorDataModel { Id = 0, Name = $"Bidder {position}" };
+                bid.BidDetails = [];
+                bid.BasicAmount = 0;
+                bid.TaxAmount = 0;
+                bid.DiscountAmount = 0;
+                bid.MainBidId = null;
+
+                if (pricesHidden)
+                {
+                    bid.NetAmount = 0;
+                    bid.AmountHidden = true;
+                }
+            }
+
+            return bids;
+        }
+
+        public async Task<List<BidActivityDataModel>> GetActivityAsync(int auctionId)
+        {
+            var tenantId = CurrentTenantId;
+            var auction = await _appDbContext.Auctions
+                .AsNoTracking()
+                .Where(a => a.Id == auctionId)
+                .Select(a => new
+                {
+                    a.IsBidPriceHidden,
+                    a.OpenToAll,
+                    OwnerTenantId = a.Organization.TenantId
+                })
+                .FirstOrDefaultAsync();
+
+            if (auction == null)
+                return [];
+
+            var isVendor = string.Equals(_jwtHelper.GetRole(), "Vendor", StringComparison.OrdinalIgnoreCase);
+            var callerVendorId = isVendor ? _jwtHelper.GetUserId() : 0;
+
+            if (!isVendor && auction.OwnerTenantId != tenantId)
+                return [];
+
+            if (isVendor && !auction.OpenToAll)
+            {
+                var qualified = await _appDbContext.VendorIntents
+                    .AnyAsync(vi => vi.AuctionId == auctionId && vi.TenantId == tenantId && vi.IsInterested && vi.IsQualified);
+                if (!qualified)
+                    return [];
+            }
+
+            var rows = await _appDbContext.Bids
+                .AsNoTracking()
+                .Where(b => b.AuctionId == auctionId)
+                .OrderBy(b => b.CreatedAt)
+                .Select(b => new { b.VendorId, VendorName = b.Vendor.Name, b.NetAmount, b.CreatedAt, b.BidRevisionNo })
+                .ToListAsync();
+
+            var aliases = new Dictionary<int, string>();
+            return rows.Select(r =>
+            {
+                var isMine = isVendor && r.VendorId == callerVendorId;
+                string bidder;
+                if (!isVendor || isMine)
+                {
+                    bidder = isMine ? "You" : r.VendorName;
+                }
+                else
+                {
+                    if (!aliases.TryGetValue(r.VendorId, out var alias))
+                    {
+                        alias = $"Bidder {aliases.Count + 1}";
+                        aliases[r.VendorId] = alias;
+                    }
+                    bidder = alias;
+                }
+
+                return new BidActivityDataModel
+                {
+                    At = r.CreatedAt,
+                    NetAmount = isVendor && !isMine && auction.IsBidPriceHidden ? null : r.NetAmount,
+                    Bidder = bidder,
+                    IsMine = isMine,
+                    BidRevisionNo = r.BidRevisionNo
+                };
+            }).ToList();
         }
     }
 }

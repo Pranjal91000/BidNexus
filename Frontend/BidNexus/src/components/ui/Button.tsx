@@ -1,34 +1,32 @@
-import React from 'react';
+import type { ButtonHTMLAttributes, ReactNode } from 'react';
 
-interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'outline' | 'danger' | 'ghost';
+interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: 'primary' | 'secondary' | 'ghost' | 'danger';
   size?: 'sm' | 'md' | 'lg';
   loading?: boolean;
-  icon?: React.ReactNode;
+  icon?: ReactNode;
+  block?: boolean;
 }
 
-export const Button: React.FC<ButtonProps> = ({
-  variant = 'primary',
+export function Button({
+  variant = 'secondary',
   size = 'md',
   loading = false,
   icon,
-  children,
+  block,
   className = '',
+  children,
   disabled,
-  ...props
-}) => {
+  type = 'button',
+  ...rest
+}: ButtonProps) {
+  const cls = ['btn', `btn--${variant}`, size !== 'md' && `btn--${size}`, block && 'btn--block', className]
+    .filter(Boolean)
+    .join(' ');
   return (
-    <button
-      className={`bn-btn bn-btn-${variant} bn-btn-${size} ${loading ? 'bn-btn-loading' : ''} ${className}`}
-      disabled={disabled || loading}
-      {...props}
-    >
-      {loading ? (
-        <span className="bn-spinner" aria-hidden="true" />
-      ) : (
-        icon && <span className="bn-btn-icon">{icon}</span>
-      )}
-      <span>{children}</span>
+    <button type={type} className={cls} disabled={disabled || loading} aria-busy={loading || undefined} {...rest}>
+      {loading ? <span className="spinner" aria-hidden="true" /> : icon}
+      {children}
     </button>
   );
-};
+}

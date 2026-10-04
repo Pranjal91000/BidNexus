@@ -1,116 +1,80 @@
-import React, { useEffect } from 'react';
-import { X, AlertTriangle } from 'lucide-react';
-import { Button } from './Button';
+import { useCallback, useEffect, useRef, type ReactNode } from 'react';
+import { X } from 'lucide-react';
+import { useEscape } from '../../lib/hooks';
 
 interface ModalProps {
-  isOpen: boolean;
-  onClose: () => void;
+  open: boolean;
   title: string;
-  subtitle?: string;
-  children: React.ReactNode;
-  footer?: React.ReactNode;
-  maxWidth?: 'sm' | 'md' | 'lg' | 'xl';
+  onClose: () => void;
+  children: ReactNode;
+  footer?: ReactNode;
+  wide?: boolean;
 }
 
-export const Modal: React.FC<ModalProps> = ({
-  isOpen,
-  onClose,
-  title,
-  subtitle,
-  children,
-  footer,
-  maxWidth = 'md',
-}) => {
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
-        onClose();
-      }
-    };
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-      window.addEventListener('keydown', handleKeyDown);
-    }
-    return () => {
-      document.body.style.overflow = 'auto';
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [isOpen, onClose]);
+export function Modal({ open, title, onClose, children, footer, wide }: ModalProps) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const close = useCallback(() => onClose(), [onClose]);
+  useEscape(open, close);
 
-  if (!isOpen) return null;
+  useEffect(() => {
+    if (!open) return;
+    const previous = document.activeElement as HTMLElement | null;
+    const first = dialogRef.current?.querySelector<HTMLElement>('input, select, textarea, button:not([data-close])');
+    first?.focus();
+    const overflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = overflow;
+      previous?.focus?.();
+    };
+  }, [open]);
+
+  if (!open) return null;
 
   return (
-    <div className="bn-modal-backdrop" onClick={onClose}>
-      <div
-        className={`bn-modal bn-modal-${maxWidth}`}
-        onClick={(e) => e.stopPropagation()}
-        role="dialog"
-        aria-modal="true"
-      >
-        <div className="bn-modal-header">
-          <div>
-            <h3 className="bn-modal-title">{title}</h3>
-            {subtitle && <p className="bn-modal-subtitle">{subtitle}</p>}
-          </div>
-          <button className="bn-modal-close" onClick={onClose} aria-label="Close modal">
+    <div className="modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+      <div ref={dialogRef} className={`modal${wide ? ' modal--wide' : ''}`} role="dialog" aria-modal="true" aria-labelledby="modal-title">
+        <div className="modal__head">
+          <h2 id="modal-title">{title}</h2>
+          <button type="button" className="icon-btn" onClick={onClose} aria-label="Close" data-close>
             <X size={18} />
           </button>
         </div>
-        <div className="bn-modal-body">{children}</div>
-        {footer && <div className="bn-modal-footer">{footer}</div>}
+        <div className="modal__body">{children}</div>
+        {footer && <div className="modal__foot">{footer}</div>}
       </div>
     </div>
   );
-};
-
-interface ConfirmDialogProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onConfirm: () => void;
-  title: string;
-  message: string;
-  confirmText?: string;
-  cancelText?: string;
-  variant?: 'danger' | 'warning' | 'primary';
-  loading?: boolean;
 }
 
-export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
-  isOpen,
-  onClose,
-  onConfirm,
-  title,
-  message,
-  confirmText = 'Confirm',
-  cancelText = 'Cancel',
-  variant = 'danger',
-  loading = false,
-}) => {
-  if (!isOpen) return null;
+interface ConfirmProps {
+  open: boolean;
+  title: string;
+  message: ReactNode;
+  confirmLabel: string;
+  danger?: boolean;
+  busy?: boolean;
+  onConfirm: () => void;
+  onCancel: () => void;
+}
 
+export function ConfirmDialog({ open, title, message, confirmLabel, danger, busy, onConfirm, onCancel }: ConfirmProps) {
   return (
     <Modal
-      isOpen={isOpen}
-      onClose={onClose}
+      open={open}
       title={title}
-      maxWidth="sm"
+      onClose={onCancel}
       footer={
-        <div className="bn-flex-end gap-2">
-          <Button variant="outline" onClick={onClose} disabled={loading}>
-            {cancelText}
-          </Button>
-          <Button variant={variant === 'danger' ? 'danger' : 'primary'} onClick={onConfirm} loading={loading}>
-            {confirmText}
-          </Button>
-        </div>
+        <>
+          <button type="button" className="btn btn--secondary" onClick={onCancel}>Cancel</button>
+          <button type="button" className={`btn ${danger ? 'btn--danger' : 'btn--primary'}`} onClick={onConfirm} disabled={busy}>
+            {busy && <span className="spinner" aria-hidden="true" />}
+            {confirmLabel}
+          </button>
+        </>
       }
     >
-      <div className="bn-confirm-body">
-        <div className={`bn-confirm-icon ${variant}`}>
-          <AlertTriangle size={24} />
-        </div>
-        <p className="bn-confirm-message">{message}</p>
-      </div>
+      <p>{message}</p>
     </Modal>
   );
-};
+}

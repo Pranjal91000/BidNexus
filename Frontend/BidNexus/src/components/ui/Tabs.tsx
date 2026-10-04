@@ -1,38 +1,25 @@
-import React from 'react';
-
-export interface TabItem {
-  id: string;
+export interface TabItem<T extends string> {
+  id: T;
   label: string;
   count?: number;
-  icon?: React.ReactNode;
 }
 
-interface TabsProps {
-  tabs: TabItem[];
-  activeTab: string;
-  onChange: (tabId: string) => void;
-  className?: string;
-}
-
-export const Tabs: React.FC<TabsProps> = ({ tabs, activeTab, onChange, className = '' }) => {
+export function Tabs<T extends string>({ tabs, active, onChange, label }: { tabs: TabItem<T>[]; active: T; onChange: (id: T) => void; label: string }) {
   return (
-    <div className={`bn-tabs ${className}`} role="tablist">
-      {tabs.map((tab) => {
-        const isActive = tab.id === activeTab;
-        return (
-          <button
-            key={tab.id}
-            role="tab"
-            aria-selected={isActive}
-            className={`bn-tab ${isActive ? 'active' : ''}`}
-            onClick={() => onChange(tab.id)}
-          >
-            {tab.icon && <span className="bn-tab-icon">{tab.icon}</span>}
-            <span>{tab.label}</span>
-            {tab.count !== undefined && <span className="bn-tab-count">{tab.count}</span>}
-          </button>
-        );
-      })}
+    <div className="tabs" role="tablist" aria-label={label}>
+      {tabs.map((t) => (
+        <button
+          key={t.id}
+          type="button"
+          role="tab"
+          aria-selected={t.id === active}
+          className={`tab${t.id === active ? ' tab--active' : ''}`}
+          onClick={() => onChange(t.id)}
+        >
+          {t.label}
+          {t.count != null && <span className="tab__count">{t.count}</span>}
+        </button>
+      ))}
     </div>
   );
-};
+}

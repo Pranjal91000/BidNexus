@@ -21,6 +21,7 @@ namespace Core.Abstraction.AuctionRelated
         Task<List<BidDataModel>> GetAuctionBidsAsync(int auctionId);
         Task<List<BidDataModel>> GetBidHistory(int vendorId, int auctionId);
         Task<List<BidDataModel>> GetLeaderBoard(int auctionId);
+        Task<List<BidActivityDataModel>> GetActivityAsync(int auctionId);
         Task<BidDataModel> GetById(long bidId);
         Task<BidDataModel?> GetVendorsCurrentBidAsync(int vendorId, int auctionId);
         Task<BidDataModel?> GetLeadingBidForAuctionAsync(int auctionId, bool isForwardAuction);

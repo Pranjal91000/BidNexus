@@ -277,7 +277,18 @@ public class BidService(
         int vendorId,
         int auctionId,
         CancellationToken cancellationToken = default)
-        => _bidRepository.GetBidHistory(vendorId, auctionId);
+    {
+        // A vendor may only ever read their own revisions, whatever vendorId the client sends.
+        if (string.Equals(_jwtHelper.GetRole(), "Vendor", StringComparison.OrdinalIgnoreCase))
+            vendorId = _jwtHelper.GetUserId();
+
+        return _bidRepository.GetBidHistory(vendorId, auctionId);
+    }
+
+    public Task<List<BidActivityDataModel>> GetActivityAsync(
+        int auctionId,
+        CancellationToken cancellationToken = default)
+        => _bidRepository.GetActivityAsync(auctionId);
 
     public Task<List<BidDataModel>> GetLeaderBoardAsync(
         int auctionId,

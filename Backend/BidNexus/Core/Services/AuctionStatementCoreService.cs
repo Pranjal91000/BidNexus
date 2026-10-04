@@ -19,4 +19,10 @@ public sealed class AuctionStatementCoreService(
         int tenantId,
         CancellationToken cancellationToken = default)
         => _repository.GetAsync(auctionId, tenantId, cancellationToken);
+
+    public Task<VendorAuctionResultDataModel?> GetVendorResultAsync(
+        int auctionId,
+        int vendorId,
+        CancellationToken cancellationToken = default)
+        => _repository.GetVendorResultAsync(auctionId, vendorId, cancellationToken);
 }

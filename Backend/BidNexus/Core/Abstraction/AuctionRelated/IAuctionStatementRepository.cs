@@ -12,4 +12,9 @@ public interface IAuctionStatementRepository
         int auctionId,
         int tenantId,
         CancellationToken cancellationToken = default);
+
+    Task<VendorAuctionResultDataModel?> GetVendorResultAsync(
+        int auctionId,
+        int vendorId,
+        CancellationToken cancellationToken = default);
 }
