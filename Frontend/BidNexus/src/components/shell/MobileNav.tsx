@@ -9,7 +9,8 @@ import {
   LogOut,
   Building2,
   Store,
-  Wifi
+  Wifi,
+  Database
 } from 'lucide-react';
 import type { Claims, Page, SignalRStatus } from '../../types';
 
@@ -91,6 +92,14 @@ export const MobileNav: React.FC<MobileNavProps> = ({
               <span>Statements</span>
             </button>
           )}
+
+          <button
+            className={`bn-nav-item ${page === 'masters' ? 'active' : ''}`}
+            onClick={() => navigate('masters')}
+          >
+            <Database size={18} />
+            <span>Master Catalog</span>
+          </button>
 
           <button
             className={`bn-nav-item ${page === 'workspace' ? 'active' : ''}`}

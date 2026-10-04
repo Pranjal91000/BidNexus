@@ -30,10 +30,6 @@ public class UnitService(
     {
         var tenantId = _jwtHelper.GetTenantId();
 
-        var statusExists = await _unitRepository.StatusExistsAsync(request.StatusId, cancellationToken);
-        if (!statusExists)
-            throw new ValidationException($"Status with ID {request.StatusId} does not exist.");
-
         var codeExists = await _unitRepository.ExistsByCodeAsync(request.Code, null, cancellationToken);
         if (codeExists)
             throw new ConflictException($"Unit with code '{request.Code}' already exists for this tenant.");
@@ -55,10 +51,6 @@ public class UnitService(
     {
         var unit = await _unitRepository.GetByIdAsync(id, cancellationToken)
             ?? throw new NotFoundException($"Unit with ID {id} not found.");
-
-        var statusExists = await _unitRepository.StatusExistsAsync(request.StatusId, cancellationToken);
-        if (!statusExists)
-            throw new ValidationException($"Status with ID {request.StatusId} does not exist.");
 
         var codeExists = await _unitRepository.ExistsByCodeAsync(request.Code, id, cancellationToken);
         if (codeExists)

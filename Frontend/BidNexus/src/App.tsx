@@ -12,12 +12,29 @@ import { LiveAuctionWorkstation } from './components/live/LiveAuctionWorkstation
 import { MyBidsView } from './components/bids/MyBidsView';
 import { AuctionStatementsRegister } from './components/statements/AuctionStatementsRegister';
 import { WorkspaceSettings } from './components/workspace/WorkspaceSettings';
+import { MastersView } from './components/masters/MastersView';
 import { ToastContainer, type ToastMessage } from './components/ui/Toast';
 import { AuctionFormModal } from './components/auctions/AuctionFormModal';
 import './App.css';
 
 export function App() {
-  const [token, setToken] = useState<string>(() => localStorage.getItem('bidnexus_token') || '');
+  const [token, setToken] = useState<string>(() => {
+    const refreshExpiresAtStr = localStorage.getItem('bidnexus_refresh_expires_at');
+    if (refreshExpiresAtStr && Date.now() >= new Date(refreshExpiresAtStr).getTime()) {
+      localStorage.removeItem('bidnexus_token');
+      localStorage.removeItem('bidnexus_refresh_token');
+      localStorage.removeItem('bidnexus_refresh_expires_at');
+      return '';
+    }
+    return localStorage.getItem('bidnexus_token') || '';
+  });
+  const [sessionNotice, setSessionNotice] = useState<string>(() => {
+    const refreshExpiresAtStr = localStorage.getItem('bidnexus_refresh_expires_at');
+    if (refreshExpiresAtStr && Date.now() >= new Date(refreshExpiresAtStr).getTime()) {
+      return 'Your previous 4-hour authorization session has expired. Please log in again.';
+    }
+    return '';
+  });
   const [claims, setClaims] = useState<Claims>(() => parseJwtClaims(token));
   const [page, setPage] = useState<Page>('overview');
 
@@ -44,11 +61,52 @@ export function App() {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   };
 
+  const handleLogout = useCallback((reason?: string) => {
+    localStorage.removeItem('bidnexus_token');
+    localStorage.removeItem('bidnexus_refresh_token');
+    localStorage.removeItem('bidnexus_refresh_expires_at');
+    setToken('');
+    setSelectedAuction(null);
+    setPage('overview');
+    if (reason) {
+      setSessionNotice(reason);
+      addToast(reason, 'warning', 'Session Notice');
+    } else {
+      setSessionNotice('');
+      addToast('Session disconnected successfully.', 'info');
+    }
+  }, [addToast]);
+
+  const handleConnectToken = (
+    newToken: string,
+    newRefreshToken?: string,
+    _expiresAt?: string,
+    refreshExpiresAt?: string
+  ) => {
+    localStorage.setItem('bidnexus_token', newToken);
+    if (newRefreshToken) {
+      localStorage.setItem('bidnexus_refresh_token', newRefreshToken);
+    }
+    if (refreshExpiresAt) {
+      localStorage.setItem('bidnexus_refresh_expires_at', refreshExpiresAt);
+    } else {
+      const fourHoursFromNow = new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString();
+      localStorage.setItem('bidnexus_refresh_expires_at', fourHoursFromNow);
+    }
+    setSessionNotice('');
+    setToken(newToken);
+  };
+
   const loadAuctions = useCallback(async () => {
     if (!token) return;
     setLoadingAuctions(true);
     try {
-      const data = await api.getAuctions(token, 0, 1, 100);
+      const parsed = parseJwtClaims(token);
+      const isVendor = parsed.role === 'Vendor';
+      // Vendors access all open/pending auctions across organizations without tenant filtering
+      const data = isVendor
+        ? await api.getPendingAuctions(token, null, 1, 100)
+        : await api.getAuctions(token, null, 1, 100);
       setAuctions(data || []);
     } catch (err: any) {
       addToast(err instanceof Error ? err.message : 'Unable to load auctions from backend.', 'error');
@@ -69,13 +127,63 @@ export function App() {
     }
   }, [token, loadAuctions]);
 
-  const handleLogout = () => {
-    localStorage.removeItem('bidnexus_token');
-    setToken('');
-    setSelectedAuction(null);
-    setPage('overview');
-    addToast('Session disconnected successfully.', 'info');
-  };
+  // Session expiry and background token refresh event listeners
+  useEffect(() => {
+    const onSessionExpired = (e: any) => {
+      const msg = e.detail || 'Session expired after 4 hours. Please log in again.';
+      handleLogout(msg);
+    };
+
+    const onTokenRefreshed = (e: any) => {
+      if (e.detail?.accessToken) {
+        setToken(e.detail.accessToken);
+        setClaims(parseJwtClaims(e.detail.accessToken));
+      }
+    };
+
+    window.addEventListener('bidnexus:session-expired', onSessionExpired);
+    window.addEventListener('bidnexus:token-refreshed', onTokenRefreshed);
+
+    return () => {
+      window.removeEventListener('bidnexus:session-expired', onSessionExpired);
+      window.removeEventListener('bidnexus:token-refreshed', onTokenRefreshed);
+    };
+  }, [handleLogout]);
+
+  // Periodic token lifecycle monitor (4-hour maximum validity & proactive refresh)
+  useEffect(() => {
+    if (!token) return;
+
+    const interval = setInterval(async () => {
+      const refreshExpiresAtStr = localStorage.getItem('bidnexus_refresh_expires_at');
+      if (refreshExpiresAtStr) {
+        const refreshExpiresTime = new Date(refreshExpiresAtStr).getTime();
+        if (Date.now() >= refreshExpiresTime) {
+          handleLogout('Your 4-hour authorization session has expired. Please log in again.');
+          return;
+        }
+      }
+
+      // Check access token expiration (proactive refresh if <= 2 minutes remaining)
+      const parsed = parseJwtClaims(token);
+      if (parsed.exp) {
+        const expTimeMs = parsed.exp * 1000;
+        const remainingMinutes = (expTimeMs - Date.now()) / (1000 * 60);
+        if (remainingMinutes <= 2) {
+          const refreshToken = localStorage.getItem('bidnexus_refresh_token');
+          if (refreshToken) {
+            try {
+              await api.doRefreshToken();
+            } catch {
+              // Ignore; request interceptor will handle on 401
+            }
+          }
+        }
+      }
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [token, handleLogout]);
 
   const handleOpenAuctionDesk = (auction: Auction) => {
     setSelectedAuction(auction);
@@ -84,7 +192,15 @@ export function App() {
 
   // If no token, show Authentication Modal / Token Gate
   if (!token) {
-    return <AuthModal onConnectToken={(newToken) => setToken(newToken)} />;
+    return (
+      <>
+        <ToastContainer toasts={toasts} onDismiss={dismissToast} />
+        <AuthModal
+          onConnectToken={handleConnectToken}
+          sessionNotice={sessionNotice}
+        />
+      </>
+    );
   }
 
   return (
@@ -190,6 +306,11 @@ export function App() {
                   onOpenAuction={handleOpenAuctionDesk}
                   onShowToast={addToast}
                 />
+              )}
+
+              {/* Master Catalog Page */}
+              {page === 'masters' && (
+                <MastersView claims={claims} token={token} onShowToast={addToast} />
               )}
 
               {/* Workspace Settings Page */}

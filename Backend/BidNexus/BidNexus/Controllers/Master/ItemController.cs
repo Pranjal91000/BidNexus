@@ -35,8 +35,10 @@ public class ItemController(IItemService itemService) : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "Organization,Admin")]
     [ProducesResponseType(typeof(ItemResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<ItemResponse>> Create([FromBody] ItemCreateRequest request, CancellationToken cancellationToken)
     {
         var validation = request.Validate();
@@ -50,8 +52,10 @@ public class ItemController(IItemService itemService) : ControllerBase
     }
 
     [HttpPut("{id:int}")]
+    [Authorize(Roles = "Organization,Admin")]
     [ProducesResponseType(typeof(ItemResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<ItemResponse>> Update(int id, [FromBody] ItemUpdateRequest request, CancellationToken cancellationToken)
     {
         var validation = request.Validate();
@@ -65,7 +69,9 @@ public class ItemController(IItemService itemService) : ControllerBase
     }
 
     [HttpDelete("{id:int}")]
+    [Authorize(Roles = "Organization,Admin")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
     {
         await _itemService.DeleteAsync(id, cancellationToken);

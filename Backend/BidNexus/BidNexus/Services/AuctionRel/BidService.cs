@@ -4,40 +4,37 @@ using Core.Abstraction.AuctionRelated;
 using Core.Abstraction.Services;
 using Core.Entities.Auction;
 using Core.Entities.Master;
+using Core.Enumeration;
 using Core.Models.AuctionRelated;
 
 namespace API.Services.AuctionRel;
 
 public class BidService(
-    IBidRepositoy bidRepository,
+    IBidRepository bidRepository,
     IAuctionRepository auctionRepository,
-    IJwtHelperService jwtHelperService) : IBidService
+    IJwtHelperService jwtHelperService,
+    IBidCoreService bidCoreService,
+    IAuctionEngine auctionEngine) : IBidService
 {
-    private readonly IBidRepositoy _bidRepository = bidRepository;
+    private readonly IBidRepository _bidRepository = bidRepository;
     private readonly IAuctionRepository _auctionRepository = auctionRepository;
     private readonly IJwtHelperService _jwtHelper = jwtHelperService;
+    private readonly IBidCoreService _bidCoreService = bidCoreService;
+    private readonly IAuctionEngine _auctionEngine = auctionEngine;
 
     public async Task<BidResponseDataModel> ProcessBidAsync(
         BidCreateRequest request,
         CancellationToken cancellationToken = default)
     {
+        if (request.DiscountAmount != 0)
+            throw new Core.Exceptions.ValidationException("Discounts are not supported by the auction bidding engine.");
+
         var vendorId = _jwtHelper.GetUserId();
         var tenantId = _jwtHelper.GetTenantId();
-
-        if (vendorId <= 0 || tenantId <= 0)
-            throw new UnauthorizedAccessException("The authenticated vendor context is missing.");
-
-        if (request.DiscountAmount != 0)
-            throw new InvalidOperationException(
-                "Discounts are not supported by the auction bidding engine.");
 
         var requirementIds = (request.BidDetails ?? [])
             .Select(x => x.AuctionRequirementId)
             .ToArray();
-
-        if (requirementIds.Length != requirementIds.Distinct().Count())
-            throw new InvalidOperationException(
-                "Each auction requirement may appear only once in a bid.");
 
         var taxIds = (request.BidDetails ?? [])
             .SelectMany(x => x.Taxes ?? [])
@@ -73,34 +70,7 @@ public class BidService(
             auction.IsForwardAuction,
             cancellationToken);
 
-        if (!context.AuctionExistsForTenant)
-            throw new InvalidOperationException("Auction was not found for the authenticated tenant.");
-
-        if (!context.VendorExistsForTenant)
-            throw new UnauthorizedAccessException("The authenticated user is not a valid vendor for this tenant.");
-
-        if (!context.OpenToAll)
-        {
-            if (context.VendorIntent == null ||
-                !context.VendorIntent.IsInterested ||
-                !context.VendorIntent.IsQualified)
-            {
-                throw new UnauthorizedAccessException(
-                    "Vendor is not interested and qualified for this auction.");
-            }
-        }
-        else if (context.VendorIntent != null &&
-                 (!context.VendorIntent.IsInterested || !context.VendorIntent.IsQualified))
-        {
-            throw new UnauthorizedAccessException(
-                "Vendor is not qualified to bid in this auction.");
-        }
-
         var requirementMap = context.Requirements.ToDictionary(x => x.Id);
-        if (requirementMap.Count != requirementIds.Length)
-            throw new InvalidOperationException(
-                "One or more auction requirements do not belong to this auction.");
-
         var taxMasterMap = context.TaxMasters.ToDictionary(x => x.Id);
         var taxNatureMap = context.TaxNatures.ToDictionary(x => x.Id);
         var chargeTypeMap = context.ChargeTypes.ToDictionary(x => x.Id);
@@ -111,14 +81,15 @@ public class BidService(
 
         foreach (var detailRequest in request.BidDetails ?? [])
         {
-            var requirement = requirementMap[detailRequest.AuctionRequirementId];
+            requirementMap.TryGetValue(detailRequest.AuctionRequirementId, out var requirement);
+            var quantity = requirement?.Quantity ?? 1m;
 
             var baseAmount = RoundMoney(
-                detailRequest.Rate * requirement.Quantity);
+                detailRequest.Rate * quantity);
 
             var bidDetail = new BidDetail
             {
-                AuctionRequirementId = requirement.Id,
+                AuctionRequirementId = detailRequest.AuctionRequirementId,
                 Rate = detailRequest.Rate,
                 BaseAmount = baseAmount
             };
@@ -135,15 +106,13 @@ public class BidService(
                     chargeTypeMap);
 
                 var taxAmount = CalculateTaxAmount(
-                    tax.ChargeType.Code,
-                    tax.ChargeType.Name,
+                    (ChargeTypeEnum)tax.ChargeType.Id,
                     tax.Value,
                     baseAmount,
-                    requirement.Quantity);
+                    quantity);
 
                 var isDeductive = IsDeductiveTax(
-                    tax.TaxNature.Code,
-                    tax.TaxNature.Name);
+                    (TaxNatureEnum)tax.TaxNature.Id);
 
                 if (isDeductive)
                     deductiveTaxes += taxAmount;
@@ -165,10 +134,6 @@ public class BidService(
             var detailTaxAmount = RoundMoney(additiveTaxes - deductiveTaxes);
             var detailNetAmount = RoundMoney(baseAmount + detailTaxAmount);
 
-            if (detailNetAmount <= 0)
-                throw new InvalidOperationException(
-                    $"Bid detail for requirement {requirement.Id} results in a non-positive net amount.");
-
             bidDetail.NetAmount = detailNetAmount;
             basicAmount += baseAmount;
             signedTaxAmount += detailTaxAmount;
@@ -178,26 +143,6 @@ public class BidService(
         basicAmount = RoundMoney(basicAmount);
         signedTaxAmount = RoundMoney(signedTaxAmount);
         var netAmount = RoundMoney(basicAmount + signedTaxAmount);
-
-        if (netAmount <= 0)
-            throw new InvalidOperationException("Calculated bid NetAmount must be greater than zero.");
-
-        if (context.CurrentBestNetAmount.HasValue)
-        {
-            if (context.IsForwardAuction &&
-                netAmount <= context.CurrentBestNetAmount.Value)
-            {
-                throw new InvalidOperationException(
-                    $"Bid must be greater than the current leading amount of {context.CurrentBestNetAmount.Value:0.00}.");
-            }
-
-            if (!context.IsForwardAuction &&
-                netAmount >= context.CurrentBestNetAmount.Value)
-            {
-                throw new InvalidOperationException(
-                    $"Bid must be less than the current leading amount of {context.CurrentBestNetAmount.Value:0.00}.");
-            }
-        }
 
         var bid = new Bid
         {
@@ -212,10 +157,14 @@ public class BidService(
             BidDetails = bidDetails
         };
 
-        return await _bidRepository.ProcessBidAsync(
-            bid,
-            tenantId,
-            cancellationToken);
+        // Delegate all bid validation rules to Core Service CustomValidation
+        var validationErrors = _bidCoreService.CustomValidation(bid, context, auction);
+        if (validationErrors.Count > 0)
+        {
+            throw validationErrors[0];
+        }
+
+        return await _auctionEngine.ProcessBidAsync(bid, cancellationToken);
     }
 
     private async Task<Core.Models.AuctionRelated.AuctionDataModel> GetAuctionAsync(
@@ -281,8 +230,7 @@ public class BidService(
     }
 
     private static decimal CalculateTaxAmount(
-        string chargeTypeCode,
-        string chargeTypeName,
+        ChargeTypeEnum chargeType,
         decimal taxValue,
         decimal baseAmount,
         decimal quantity)
@@ -290,34 +238,24 @@ public class BidService(
         if (taxValue < 0)
             throw new InvalidOperationException("TaxValue cannot be negative.");
 
-        var code = NormalizeCode(chargeTypeCode, chargeTypeName);
-
-        var amount = code switch
+        var amount = chargeType switch
         {
-            "PERCENTAGE" or "PERCENT" or "PCT" => baseAmount * taxValue / 100m,
-            "PER_UNIT" or "PERUNIT" or "UNIT" => quantity * taxValue,
-            "WHOLE" or "FIXED" or "FLAT" => taxValue,
-            _ => throw new InvalidOperationException(
-                $"Unsupported charge type '{chargeTypeName}'.")
+            ChargeTypeEnum.Percentage => baseAmount * taxValue / 100m,
+            ChargeTypeEnum.PerUnit => quantity * taxValue,
+            ChargeTypeEnum.Fixed => taxValue,
+            _ => throw new InvalidOperationException($"Unsupported charge type '{(int)chargeType}'.")
         };
 
         return RoundMoney(amount);
     }
 
-    private static bool IsDeductiveTax(string code, string name)
-        => NormalizeCode(code, name) switch
+    private static bool IsDeductiveTax(TaxNatureEnum taxNature)
+        => taxNature switch
         {
-            "DEDUCTIVE" or "DEDUCT" => true,
-            "ADDITIVE" or "ADD" => false,
-            _ => throw new InvalidOperationException($"Unsupported tax nature '{name}'.")
+            TaxNatureEnum.Deductive => true,
+            TaxNatureEnum.Additive => false,
+            _ => throw new InvalidOperationException($"Unsupported tax nature '{(int)taxNature}'.")
         };
-
-    private static string NormalizeCode(string code, string name)
-        => (string.IsNullOrWhiteSpace(code) ? name : code)
-            .Trim()
-            .ToUpperInvariant()
-            .Replace("-", "_")
-            .Replace(" ", "_");
 
     private static decimal RoundMoney(decimal value)
         => Math.Round(value, 2, MidpointRounding.AwayFromZero);

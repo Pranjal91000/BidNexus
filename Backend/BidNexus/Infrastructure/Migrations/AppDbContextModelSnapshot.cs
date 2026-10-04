@@ -224,11 +224,13 @@ namespace Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("AuctionId");
-
                     b.HasIndex("MainBidId");
 
                     b.HasIndex("VendorId");
+
+                    b.HasIndex("AuctionId", "VendorId", "BidRevisionNo")
+                        .IsUnique()
+                        .HasDatabaseName("IX_Bid_AuctionId_VendorId_BidRevisionNo");
 
                     b.ToTable("Bid", "AuctionRel");
                 });

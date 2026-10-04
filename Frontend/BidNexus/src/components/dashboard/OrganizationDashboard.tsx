@@ -2,6 +2,7 @@ import React from 'react';
 import type { Auction, Statement } from '../../types';
 import { StatCard } from '../ui/StatCard';
 import { Badge, toneFromStatus } from '../ui/Badge';
+import { Countdown } from '../ui/Countdown';
 import { Button } from '../ui/Button';
 import { Gavel, PlayCircle, Calendar, CheckCircle2, ArrowRight, Layers, AlertCircle, Award } from 'lucide-react';
 import { LoadingState } from '../ui/LoadingState';
@@ -83,7 +84,7 @@ export const OrganizationDashboard: React.FC<OrganizationDashboardProps> = ({
           tone="info"
         />
         <StatCard
-          title="Closed & Awarded"
+          title="Completed & Awarded"
           value={closedAuctions.length}
           icon={<CheckCircle2 size={20} />}
           subtitle="Completed auction statements"
@@ -112,7 +113,10 @@ export const OrganizationDashboard: React.FC<OrganizationDashboardProps> = ({
               {liveAuctions.slice(0, 4).map((auction) => (
                 <div key={auction.id} className="bn-dashboard-card" onClick={() => onOpenAuction(auction)}>
                   <div className="bn-card-header">
-                    <Badge tone={auction.statusName}>{auction.statusName || 'Live'}</Badge>
+                    <div className="bn-flex-center gap-2">
+                      <Badge tone={auction.statusName}>{auction.statusName || 'Live'}</Badge>
+                      <Countdown endTime={auction.auctionEndTime} startTime={auction.auctionStartTime} compact />
+                    </div>
                     <span className="bn-auction-id">#{auction.id}</span>
                   </div>
                   <h4 className="bn-card-title">{auction.auctionName || auction.docNoYearly}</h4>
@@ -172,7 +176,7 @@ export const OrganizationDashboard: React.FC<OrganizationDashboardProps> = ({
           <div className="bn-section-header bn-mt-6">
             <div>
               <span className="bn-eyebrow">RECENTLY COMPLETED</span>
-              <h3 className="bn-section-title">Closed Auctions</h3>
+              <h3 className="bn-section-title">Completed Auctions</h3>
             </div>
           </div>
 
@@ -185,12 +189,12 @@ export const OrganizationDashboard: React.FC<OrganizationDashboardProps> = ({
                     <strong>{auction.auctionName || auction.docNoYearly}</strong>
                     <small>Doc #{auction.docNoYearly}</small>
                   </div>
-                  <Badge tone="closed">Closed</Badge>
+                  <Badge tone="closed">Completed</Badge>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="bn-text-muted bn-text-sm">No closed auctions recorded in this tenant scope yet.</p>
+            <p className="bn-text-muted bn-text-sm">No completed auctions recorded in this tenant scope yet.</p>
           )}
         </div>
       </div>

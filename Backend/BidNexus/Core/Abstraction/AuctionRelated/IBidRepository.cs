@@ -3,7 +3,7 @@ using Core.Models.AuctionRelated;
 
 namespace Core.Abstraction.AuctionRelated
 {
-    public interface IBidRepositoy
+    public interface IBidRepository
     {
         Task<BidProcessingContext> GetBidProcessingContextAsync(
             int auctionId,
@@ -16,15 +16,13 @@ namespace Core.Abstraction.AuctionRelated
             bool isForwardAuction,
             CancellationToken cancellationToken = default);
 
-        Task<BidResponseDataModel> ProcessBidAsync(
-            Bid bid,
-            int tenantId,
-            CancellationToken cancellationToken = default);
+        Task<BidResponseDataModel> ProcessBidAsync(Bid currbid, long? invalidateBidId, CancellationToken cancellationToken = default);
 
         Task<List<BidDataModel>> GetAuctionBidsAsync(int auctionId);
         Task<List<BidDataModel>> GetBidHistory(int vendorId, int auctionId);
         Task<List<BidDataModel>> GetLeaderBoard(int auctionId);
         Task<BidDataModel> GetById(long bidId);
         Task<BidDataModel?> GetVendorsCurrentBidAsync(int vendorId, int auctionId);
+        Task<BidDataModel?> GetLeadingBidForAuctionAsync(int auctionId, bool isForwardAuction);
     }
 }

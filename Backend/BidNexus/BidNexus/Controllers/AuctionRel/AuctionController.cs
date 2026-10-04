@@ -25,6 +25,18 @@ public class AuctionController(IAuctionService auctionService) : ControllerBase
         return Ok(result);
     }
 
+    [HttpGet("pending")]
+    [ProducesResponseType(typeof(List<AuctionGetDataModel>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<List<AuctionGetDataModel>>> GetAuctions(
+        [FromQuery] short categoryId = 0,
+        [FromQuery] short pageNo = 1,
+        [FromQuery] short pageSize = 10,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _auctionService.GetPendingAsync(categoryId, pageNo, pageSize, cancellationToken);
+        return Ok(result);
+    }
+
     [HttpGet("{id:int}")]
     [ProducesResponseType(typeof(AuctionDataModel), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

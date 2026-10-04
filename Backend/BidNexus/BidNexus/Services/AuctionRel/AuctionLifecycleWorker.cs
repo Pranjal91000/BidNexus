@@ -1,26 +1,22 @@
 using Core.Abstraction.AuctionRelated;
 using Core.Abstraction.Services;
-using Microsoft.Extensions.Options;
+using Core.Enumeration;
 
 namespace API.Services.AuctionRel;
 
 public sealed class AuctionLifecycleWorker(
     IServiceScopeFactory scopeFactory,
-    IOptions<AuctionEngineOptions> options,
     ILogger<AuctionLifecycleWorker> logger) : BackgroundService
 {
     private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
-    private readonly AuctionEngineOptions _options = options.Value;
     private readonly ILogger<AuctionLifecycleWorker> _logger = logger;
+    private static readonly TimeSpan PollingInterval = TimeSpan.FromSeconds(1);
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        var interval = TimeSpan.FromSeconds(
-            Math.Max(1, _options.PollingIntervalSeconds));
-
         _logger.LogInformation(
             "Auction lifecycle worker started. Poll interval: {IntervalSeconds}s.",
-            interval.TotalSeconds);
+            PollingInterval.TotalSeconds);
 
         while (!stoppingToken.IsCancellationRequested)
         {
@@ -37,7 +33,7 @@ public sealed class AuctionLifecycleWorker(
                 _logger.LogError(ex, "Error while processing auction lifecycle.");
             }
 
-            await Task.Delay(interval, stoppingToken);
+            await Task.Delay(PollingInterval, stoppingToken);
         }
 
         _logger.LogInformation("Auction lifecycle worker stopped.");
@@ -47,17 +43,13 @@ public sealed class AuctionLifecycleWorker(
     {
         using var scope = _scopeFactory.CreateScope();
         var repository = scope.ServiceProvider.GetRequiredService<IAuctionRepository>();
-        var statementService = scope.ServiceProvider.GetRequiredService<IAuctionStatementService>();
-        var realtimeService = scope.ServiceProvider.GetRequiredService<IAuctionRealtimeService>();
+        var statementService = scope.ServiceProvider.GetRequiredService<IAuctionStatementCoreService>();
+        var realtimeService = scope.ServiceProvider.GetRequiredService<IAuctionRealtimeCoreService>();
         var now = DateTimeOffset.UtcNow;
 
-        var auctionsToStart = await repository.GetAuctionsForLifecycleAsync(
-            now,
-            _options.ScheduledStatusName,
-            _options.ActiveStatusName,
-            _options.ClosedStatusName);
+        var auctionsToProcess = await repository.GetAuctionsForLifecycleAsync(now);
 
-        foreach (var auction in auctionsToStart)
+        foreach (var auction in auctionsToProcess)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
@@ -65,21 +57,30 @@ public sealed class AuctionLifecycleWorker(
             {
                 await repository.UpdateStatusAsync(
                     auction.Id,
-                    _options.ActiveStatusName);
+                    (short)StatusEnum.Open);
+
+                await realtimeService.PublishAuctionStartedAsync(
+                    auction.Id,
+                    cancellationToken);
             }
 
-            if (auction.ShouldClose)
+            if (auction.ShouldComplete)
             {
                 await repository.UpdateStatusAsync(
                     auction.Id,
-                    _options.ClosedStatusName);
+                    (short)StatusEnum.Completed);
 
                 await statementService.GenerateAsync(
                     auction.Id,
-                    auction.TenantId,
                     cancellationToken);
 
-                await realtimeService.PublishAuctionClosedAsync(
+                await realtimeService.PublishAuctionCompletedAsync(
+                    auction.Id,
+                    cancellationToken);
+            }
+            else if (auction.NeedsStatementGeneration)
+            {
+                await statementService.GenerateAsync(
                     auction.Id,
                     cancellationToken);
             }

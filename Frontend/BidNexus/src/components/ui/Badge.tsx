@@ -11,10 +11,11 @@ interface BadgeProps {
 
 export function toneFromStatus(statusName?: string): BadgeTone {
   if (!statusName) return 'scheduled';
-  const s = statusName.toLowerCase();
-  if (s.includes('active') || s.includes('live')) return 'live';
+  const s = statusName.toLowerCase().trim();
   if (s.includes('close') || s.includes('complete') || s.includes('award') || s.includes('ended')) return 'closed';
   if (s.includes('cancel')) return 'cancelled';
+  if (s.includes('intent') || s.includes('draft')) return 'scheduled';
+  if (s.includes('active') || s.includes('live') || s === 'open' || s.startsWith('open')) return 'live';
   return 'scheduled';
 }
 

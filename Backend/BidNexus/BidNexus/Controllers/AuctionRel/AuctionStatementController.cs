@@ -9,10 +9,10 @@ namespace API.Controllers.AuctionRel;
 [Authorize(Roles = "Organization")]
 [Route("api/auctions")]
 public sealed class AuctionStatementController(
-    IAuctionStatementService statementService,
+    IAuctionStatementCoreService statementService,
     IJwtHelperService jwtHelperService) : ControllerBase
 {
-    private readonly IAuctionStatementService _statementService = statementService;
+    private readonly IAuctionStatementCoreService _statementService = statementService;
     private readonly IJwtHelperService _jwtHelperService = jwtHelperService;
 
     [HttpGet("{auctionId:int}/statement")]

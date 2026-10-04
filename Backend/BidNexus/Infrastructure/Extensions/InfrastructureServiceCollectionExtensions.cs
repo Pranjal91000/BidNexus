@@ -43,6 +43,7 @@ namespace Infrastructure.Extensions
             services.AddScoped<IUnitRepository, UnitRepository>();
             services.AddScoped<IItemRepository, ItemRepository>();
             services.AddScoped<ITaxMasterRepository, TaxMasterRepository>();
+            services.AddScoped<Core.Abstraction.Utilities.IRatingRepository, Infrastructure.Repository.Utilities.RatingRepository>();
 
             services.AddAuctionInfrastructure();
 

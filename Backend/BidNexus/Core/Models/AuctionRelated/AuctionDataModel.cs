@@ -9,6 +9,8 @@ namespace Core.Models.AuctionRelated
     public class AuctionDataModel
     {
         public int Id { get; set; }
+        public string AuctionName { get; set; } = string.Empty;
+        public string About { get; set; } = string.Empty;
         public string DocNoYearly { get; set; } = string.Empty;
         public DateOnly DocDate { get; set; }
         public bool IsForwardAuction { get; set; }
@@ -35,7 +37,13 @@ namespace Core.Models.AuctionRelated
         public DateTimeOffset AuctionStartTime { get; set; }
         public DateTimeOffset AuctionEndTime { get; set; }
         public bool ShouldStart { get; set; }
-        public bool ShouldClose { get; set; }
+        public bool ShouldComplete { get; set; }
+        public bool ShouldClose
+        {
+            get => ShouldComplete;
+            set => ShouldComplete = value;
+        }
+        public bool NeedsStatementGeneration { get; set; }
     }
 
     public class AuctionResponseModel
@@ -49,10 +57,18 @@ namespace Core.Models.AuctionRelated
     public class AuctionGetDataModel
     {
         public int Id { get; set; }
+        public string AuctionName { get; set; } = string.Empty;
+        public string About { get; set; } = string.Empty;
         public string DocNoYearly { get; set; } = string.Empty;
         public DateOnly DocDate { get; set; }
         public bool IsForwardAuction { get; set; }
         public string StatusName { get; set; } = string.Empty;
+        public short StatusId { get; set; }
+        public DateTimeOffset AuctionStartTime { get; set; }
+        public DateTimeOffset AuctionEndTime { get; set; }
+        public bool OpenToAll { get; set; }
+        public bool IsBidPriceHidden { get; set; }
+        public int OrganizationId { get; set; }
         public DateTimeOffset? AuctionIntentSubmissionDate { get; set; }
         public OrganizationOverviewDataModel Organization { get; set; } = null!;
         public List<AuctionRequirementDataModel> AuctionRequirements { get; set; } = null!;

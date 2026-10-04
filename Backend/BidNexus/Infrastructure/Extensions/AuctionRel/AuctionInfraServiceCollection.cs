@@ -9,7 +9,7 @@ namespace Infrastructure.Extensions.AuctionRel
         public static IServiceCollection AddAuctionInfrastructure(this IServiceCollection services)
         {
             services.AddScoped<IAuctionRepository, AuctionRepository>();
-            services.AddScoped<IBidRepositoy, BiddingRepository>();
+            services.AddScoped<IBidRepository, BiddingRepository>();
             services.AddScoped<IAuctionStatementRepository, AuctionStatementRepository>();
             return services;
         }

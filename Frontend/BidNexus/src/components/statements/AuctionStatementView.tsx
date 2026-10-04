@@ -1,12 +1,17 @@
-import React from 'react';
-import type { Auction, Statement } from '../../types';
-import { Award, CheckCircle2, FileText, RefreshCw, Trophy } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import type { Auction, Statement, Claims, RatingSummary } from '../../types';
+import { Award, CheckCircle2, FileText, RefreshCw, Trophy, Star } from 'lucide-react';
 import { Button } from '../ui/Button';
+import { RatingModal } from '../ratings/RatingModal';
+import { api } from '../../services/api';
 
 interface StatementViewProps {
   auction: Auction;
   statements: Statement[];
   onRefresh: () => void;
+  token?: string;
+  claims?: Claims;
+  onShowToast?: (msg: string, tone?: 'success' | 'error' | 'info') => void;
 }
 
 const formatCurrency = (amount: number) => {
@@ -17,8 +22,46 @@ const formatCurrency = (amount: number) => {
   }).format(amount);
 };
 
-export const StatementView: React.FC<StatementViewProps> = ({ auction, statements, onRefresh }) => {
+export const StatementView: React.FC<StatementViewProps> = ({
+  auction,
+  statements,
+  onRefresh,
+  token,
+  claims,
+  onShowToast,
+}) => {
+  const [ratingModalOpen, setRatingModalOpen] = useState(false);
+  const [ratings, setRatings] = useState<RatingSummary[]>([]);
+  const [loadingRatings, setLoadingRatings] = useState(false);
+
   const winner = statements.find((s) => s.isWinner || s.rank === 1);
+
+  const isOrg = claims?.role === 'Organization';
+  const isWinningVendor = claims?.role === 'Vendor' && winner && claims.userId === winner.vendorId;
+
+  // Determine if caller has already submitted a rating for this auction
+  const alreadyRated = Boolean(
+    claims && ratings.some((r) => r.submittedByTenantId === claims.tenantId)
+  );
+
+  useEffect(() => {
+    if (token && auction.id) {
+      loadRatings();
+    }
+  }, [token, auction.id]);
+
+  const loadRatings = async () => {
+    if (!token) return;
+    setLoadingRatings(true);
+    try {
+      const data = await api.getAuctionRatings(token, auction.id);
+      setRatings(data || []);
+    } catch {
+      // Ignore if no ratings endpoint response
+    } finally {
+      setLoadingRatings(false);
+    }
+  };
 
   if (statements.length === 0) {
     return (
@@ -50,8 +93,45 @@ export const StatementView: React.FC<StatementViewProps> = ({ auction, statement
               Winning Bid Amount: <strong className="bn-font-mono">{formatCurrency(winner.netAmount)}</strong> • Reference Bid #{winner.bidId}
             </p>
           </div>
-          <div className="bn-winner-award-chip">
-            <CheckCircle2 size={16} /> Verified & Awarded
+          <div className="bn-flex-center gap-2">
+            <div className="bn-winner-award-chip">
+              <CheckCircle2 size={16} /> Verified & Awarded
+            </div>
+
+            {/* Rating Trigger Buttons */}
+            {token && isOrg && (
+              alreadyRated ? (
+                <span className="bn-badge bn-badge-winner">
+                  <CheckCircle2 size={13} /> Vendor Rated
+                </span>
+              ) : (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  icon={<Star size={14} />}
+                  onClick={() => setRatingModalOpen(true)}
+                >
+                  Rate Winning Vendor
+                </Button>
+              )
+            )}
+
+            {token && isWinningVendor && (
+              alreadyRated ? (
+                <span className="bn-badge bn-badge-winner">
+                  <CheckCircle2 size={13} /> Org Rated
+                </span>
+              ) : (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  icon={<Star size={14} />}
+                  onClick={() => setRatingModalOpen(true)}
+                >
+                  Rate Organization
+                </Button>
+              )
+            )}
           </div>
         </section>
       )}
@@ -105,6 +185,44 @@ export const StatementView: React.FC<StatementViewProps> = ({ auction, statement
         </table>
       </div>
 
+      {/* Ratings Ledger Section */}
+      {ratings.length > 0 && (
+        <div className="bn-rating-ledger-card">
+          <div className="bn-flex-between bn-mb-2">
+            <div>
+              <span className="bn-eyebrow">VERIFIED REPUTATION LEDGER</span>
+              <h5 className="bn-table-title">Auction Performance Ratings</h5>
+            </div>
+            <span className="bn-badge bn-badge-scheduled">
+              {loadingRatings ? 'Loading...' : `${ratings.length} Submission(s)`}
+            </span>
+          </div>
+
+          <div className="bn-ratings-stream">
+            {ratings.map((rating) => (
+              <div key={rating.id} className="bn-rating-entry bn-flex-between">
+                <div>
+                  <div className="bn-flex-center gap-2">
+                    <span className="bn-badge bn-badge-info">{rating.ratingForName || 'Rating'}</span>
+                    <span className="bn-text-muted bn-text-xs">
+                      {new Date(rating.createdAt).toLocaleDateString()}
+                    </span>
+                  </div>
+                  {rating.remarks && (
+                    <p className="bn-text-sm bn-mt-1 bn-text-muted">"{rating.remarks}"</p>
+                  )}
+                </div>
+                <div className="bn-flex-center gap-1">
+                  <Star size={15} fill="#eab308" color="#eab308" />
+                  <strong>{rating.averageScore.toFixed(1)}</strong>
+                  <span className="bn-text-muted bn-text-xs">/ 5.0</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Requirement Line Items Summary */}
       <div className="bn-statement-summary-box bn-mt-6">
         <h5 className="bn-summary-title">Scope & Compliance Certification</h5>
@@ -112,6 +230,29 @@ export const StatementView: React.FC<StatementViewProps> = ({ auction, statement
           This statement reflects the final authoritative evaluations rendered by the BidNexus procurement engine for Auction #{auction.id} ({auction.docNoYearly}). All bids were evaluated under strict multi-tenant isolation.
         </p>
       </div>
+
+      {/* Rating Modal */}
+      {ratingModalOpen && token && (
+        <RatingModal
+          isOpen={ratingModalOpen}
+          onClose={() => setRatingModalOpen(false)}
+          token={token}
+          auctionId={auction.id}
+          auctionName={auction.auctionName || auction.docNoYearly}
+          targetName={
+            isOrg
+              ? winner?.vendorName || `Winning Vendor #${winner?.vendorId}`
+              : auction.organization?.name || 'Procurement Organization'
+          }
+          targetRole={isOrg ? 'Vendor' : 'Organization'}
+          onRatingSubmitted={() => {
+            loadRatings();
+            onRefresh();
+          }}
+          onShowToast={onShowToast}
+        />
+      )}
     </div>
   );
 };
+
