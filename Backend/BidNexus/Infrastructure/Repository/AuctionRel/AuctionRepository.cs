@@ -177,7 +177,8 @@ namespace Infrastructure.Repository.AuctionRel
                 .AsNoTracking()
                 .Include(a => a.Status)
                 .Where(a =>
-                    (a.StatusId == (short)StatusEnum.Scheduled && a.AuctionStartTime <= now) ||
+                    // Authorized auctions must also be started/closed by the worker; previously they were never selected.
+                    ((a.StatusId == (short)StatusEnum.Authorized || a.StatusId == (short)StatusEnum.Scheduled) && a.AuctionStartTime <= now) ||
                     (a.StatusId == (short)StatusEnum.Open && a.AuctionEndTime <= now) ||
                     (a.StatusId == (short)StatusEnum.Completed && !_dbContext.AuctionStatements.Any(s => s.AuctionId == a.Id)))
                 .Select(a => new AuctionLifecycleDataModel
@@ -375,10 +376,14 @@ namespace Infrastructure.Repository.AuctionRel
 
         public async Task<List<AuctionGetDataModel>> GetPendingAuctionsAsync(short categoryId, short pageNo, short pageSize, CancellationToken cancellationToken = default)
         {
-            // Provides all auctions that are NOT in Draft (1) and NOT Completed (7) across all organizations without tenant filtering
+            // Open/upcoming auctions across organisations, plus completed auctions the calling vendor bid in
+            // (so vendors can see their results). Drafts are never visible.
+            var callerVendorId = jwtHelper.GetUserId();
             var query = _dbContext.Auctions
                 .AsNoTracking()
-                .Where(a => a.StatusId != 1 && a.StatusId != 7 && a.Status.Name != "Draft" && a.Status.Name != "Completed");
+                .Where(a => a.StatusId != (short)StatusEnum.Draft &&
+                    (a.StatusId != (short)StatusEnum.Completed ||
+                     _dbContext.Bids.Any(b => b.AuctionId == a.Id && b.VendorId == callerVendorId)));
 
             if (categoryId > 0)
             {

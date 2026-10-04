@@ -9,5 +9,6 @@ public interface IBidService
     Task<List<BidDataModel>> GetAuctionBidsAsync(int auctionId, CancellationToken cancellationToken = default);
     Task<List<BidDataModel>> GetBidHistoryAsync(int vendorId, int auctionId, CancellationToken cancellationToken = default);
     Task<List<BidDataModel>> GetLeaderBoardAsync(int auctionId, CancellationToken cancellationToken = default);
+    Task<List<BidActivityDataModel>> GetActivityAsync(int auctionId, CancellationToken cancellationToken = default);
     Task<BidDataModel> GetByIdAsync(long bidId, CancellationToken cancellationToken = default);
 }

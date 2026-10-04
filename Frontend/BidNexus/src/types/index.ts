@@ -1,6 +1,6 @@
 export type Role = 'Vendor' | 'Organization' | 'Unknown';
 
-export type Page = 'overview' | 'auctions' | 'bids' | 'statements' | 'workspace' | 'masters';
+export type Page = 'overview' | 'auctions' | 'masters' | 'profile';
 
 export interface Claims {
   role: Role;
@@ -27,6 +27,7 @@ export interface Item {
   name?: string;
   code?: string;
   about?: string;
+  itemDescription?: string;
   categoryId?: number;
   statusId?: number;
   applicableUnits?: any[];
@@ -155,8 +156,21 @@ export interface Bid {
   createdAt: string;
   isCurrent: boolean;
   bidRevisionNo: number;
+  /** True when the server withheld this competitor's amount (hidden-price auction). */
+  amountHidden?: boolean;
   vendor?: { id?: number; name?: string; userName?: string };
   bidDetails?: any[];
+}
+
+export interface StatementLine {
+  auctionRequirementId: number;
+  lineNo: number;
+  itemName: string;
+  quantity: number;
+  unitName: string;
+  rate: number;
+  baseAmount: number;
+  netAmount: number;
 }
 
 export interface Statement {
@@ -165,9 +179,86 @@ export interface Statement {
   bidId: number;
   vendorId: number;
   vendorName: string;
+  basicAmount?: number;
+  taxAmount?: number;
   netAmount: number;
   rank: number;
   isWinner: boolean;
+  bidRevisionNo?: number;
+  submittedAt?: string;
+  lines?: StatementLine[];
+}
+
+export interface VendorAuctionResult {
+  auctionId: number;
+  participated: boolean;
+  rank: number | null;
+  bidders: number;
+  isWinner: boolean;
+  pricesHidden: boolean;
+  myNetAmount: number | null;
+  myBasicAmount: number | null;
+  myTaxAmount: number | null;
+  winningAmount: number | null;
+  bidRevisionNo: number | null;
+  lines: StatementLine[];
+}
+
+export interface BidActivity {
+  at: string;
+  netAmount: number | null;
+  bidder: string;
+  isMine: boolean;
+  bidRevisionNo: number;
+}
+
+export interface MonthlyPoint {
+  month: string;
+  auctions: number;
+  won: number;
+  value: number;
+}
+
+export interface AuctionResultSummary {
+  auctionId: number;
+  auctionName: string;
+  docNoYearly: string;
+  closedAt: string;
+  winnerName: string | null;
+  winningAmount: number | null;
+  bidders: number;
+  priceImprovementPercent: number | null;
+}
+
+export interface OrganizationDashboard {
+  live: number;
+  upcoming: number;
+  drafts: number;
+  closedLast90Days: number;
+  awardedValueLast90Days: number;
+  averagePriceImprovementPercent: number | null;
+  averageBiddersPerAuction: number;
+  monthly: MonthlyPoint[];
+  recentResults: AuctionResultSummary[];
+}
+
+export interface VendorLivePosition {
+  auctionId: number;
+  auctionName: string;
+  endsAt: string;
+  rank: number;
+  bidders: number;
+}
+
+export interface VendorDashboard {
+  liveParticipating: number;
+  leading: number;
+  upcomingOpen: number;
+  participatedLast12Months: number;
+  wonLast12Months: number;
+  wonValueLast12Months: number;
+  monthly: MonthlyPoint[];
+  livePositions: VendorLivePosition[];
 }
 
 export interface LoginResponse {

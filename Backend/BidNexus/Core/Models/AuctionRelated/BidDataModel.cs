@@ -27,6 +27,8 @@ namespace Core.Models.AuctionRelated
         public decimal NetAmount { get; set; }
         public DateTimeOffset CreatedAt { get; set; }
         public short BidRevisionNo { get; set; }
+        /// <summary>True when amounts were withheld from the caller (hidden-price auction, competitor's bid).</summary>
+        public bool AmountHidden { get; set; }
         public VendorDataModel Vendor { get; set; } = null!;
         public List<BidDetailDataModel> BidDetails { get; set; } = null!;
     }

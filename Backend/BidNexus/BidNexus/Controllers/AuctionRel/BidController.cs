@@ -88,6 +88,15 @@ public class BidController(
         return Ok(result);
     }
 
+    /// <summary>Every bid event in time order, for the price-trend chart. Masked for vendors.</summary>
+    [HttpGet("auction/{auctionId:int}/activity")]
+    [ProducesResponseType(typeof(List<BidActivityDataModel>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<List<BidActivityDataModel>>> GetActivity(int auctionId, CancellationToken cancellationToken)
+    {
+        var result = await _bidService.GetActivityAsync(auctionId, cancellationToken);
+        return Ok(result);
+    }
+
     [HttpGet("auction/{auctionId:int}/history")]
     [ProducesResponseType(typeof(List<BidDataModel>), StatusCodes.Status200OK)]
     public async Task<ActionResult<List<BidDataModel>>> GetBidHistory(
